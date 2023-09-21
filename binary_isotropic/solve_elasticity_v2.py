@@ -119,6 +119,8 @@ def solve_elasticity_v2(Nx, Ny, tmatx, cm11, cm12, cm44, cp11, cp12, cp44, ea, e
     # E = Cijkl * et_ij * et_kl
     # del E / del c = (Cp - Cm) * et_ij * et_kl + 2ei0 * Cijkl * et_kl
 
+    el = 0.5 * (et11 ** 2 * c11 + et22 ** 2 * c11 + 2 * et11 * c12 * et22 + 4 * et12 ** 2 * c44)
+
     # delsdc0 = 0.5 * (et11 * ((cp12 - cm12) * et22 + (cp11 - cm11) * et11 - c12 * ei0 - c11 * ei0) \
     #     - ei0 * (c12 * et22 + c11 * et11) + ((cp11 - cm11) * et22 + (cp12 - cm12) * et11 - c12 * ei0 - c11 * ei0) * et22 \
     #     - ei0 * (c11 * et22 + c12 * et11) + 2.0 * (cp44 - cm44) * et12**2 - 4.0 * ei0 * c44 * et12)
@@ -126,17 +128,7 @@ def solve_elasticity_v2(Nx, Ny, tmatx, cm11, cm12, cm44, cp11, cp12, cp44, ea, e
         - ei0 * (c12 * et22 + c11 * et11) + ((cp11 - cm11) * et22 + (cp12 - cm12) * et11 - c12 * ei0 - c11 * ei0) * et22 \
         - ei0 * (c11 * et22 + c12 * et11) + 2.0 * (cp44 - cm44) * et12**2)
 
-    # delsdc = 1/2 * con**2*(2*ei0**2*Ci11 + 2*ei0**2*Ci12) 
-    # + con*(
-    #     4*ei0**2*c11 + 4*ei0**2*c12 + 
-    #     (-2*ei0*et11 - 2*ei0*et22)*Ci11 
-    #     + (-2*ei0*et11 - 2*ei0*et22)*Ci12
-    # )- 2*ei0*c11*et11 - 2*ei0*c11*et22 - 2*ei0*c12*et11 \
-    #     - 2*ei0*c12*et22 + (et11**2 + et22**2)*Ci11 \
-    #         + 2*Ci12*et11*et22 + 4*Ci44*et12**2
-    
-
-    return (delsdc0, et11, et22, et12 ,s11, s22, s12)
+    return (delsdc0, et11, et22, et12 ,s11, s22, s12, el)
 
 # 1/2 * (
 #     et11 * (
