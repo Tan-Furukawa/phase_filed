@@ -15,6 +15,7 @@ from scipy.fftpack import fft2, ifft2
 #%%
 time0 = time.time()
 
+
 Nx = 64
 Ny = 64
 NxNy = Nx * Ny
@@ -25,9 +26,10 @@ nprint = 50
 dtime = 5.0e-2
 ttime = 0.0
 coefA = 1.0
-c0 = 0.45
+c0 = 0.40
 mobility = 1.0
 grad_coef = 0.4
+noise = 0.1
 
 energy_g = np.zeros(nstep) + np.nan
 energy_el = np.zeros(nstep) + np.nan
@@ -42,56 +44,65 @@ energy_el = np.zeros(nstep) + np.nan
 R = 8.31446262
 T = 773
 
-Fe = 55.845
-rho_Fe = 7.874 * 10 ** 6
-
-Mo = 95.95 
-rho_Mo = 10.28 * 10 ** 6
-# w = 36490 / (R * T)
 w = 3
 #%%
 # eigen strains 
 # ei0_ij * c(r)
-ei0 = 0.05
-noise = 0.01
 
-# w = -5
-# x = np.linspace(0.001, 0.999, 100)
-# plt.plot(x * np.log(x) + (1-x) * np.log(1-x) + w * x * (1-x))
+#--------------------------------------------------
+# feldspar
+#--------------------------------------------------
+ei0 = np.array([
+    [0.0567, 0.0168959163898733],
+    [0.0168959163898733, 0.016857698027364],
+])
 
-a = (0.286 * 10**(-9)) ** 3 * 6.02 * 10**23 / 2
-cp11 = 4.63 * 10**11 / (R * T) * (a)
-cp12 = 1.61 * 10**11 / (R * T) * (a)
-cp44 = 1.09 * 10**11 / (R * T) * (a)
+v_or = 8.60 * 13.2  * 7.18 * np.sin(116 / 180 * np.pi)
+v_ab = 8.15 * 12.85 * 7.12 * np.sin(116 / 180 * np.pi)
 
-cm11 = 2.33 * 10**11 / (R * T) * (a)
-cm12 = 1.35 * 10**11 / (R * T) * (a)
-cm44 = 1.18 * 10**11 / (R * T) * (a)
+# Cij[GPa] * 10^9 * v[Å] * 10*(-30) * NA[/mol] = [/mol]
+# [Pa/J] = [1/L3]
+cp = np.array([
+    [93.9, 52.2, -26.2],
+    [  0,  82.1, -19.5],
+    [  0,     0,  44.2]
+]) * 10**9 / (R * T) * v_ab * 10**(-30) * 6.02 * 10**23 / 4
 
-# cp11 = 4.63 * 10**11 / (R * T) * (Mo/rho_Mo)
-# cp12 = 1.61 * 10**11 / (R * T) * (Mo/rho_Mo)
-# cp44 = 1.09 * 10**11 / (R * T) * (Mo/rho_Mo)
-# cm11 = 2.33 * 10**11 / (R * T) * (Fe/rho_Fe)
-# cm12 = 1.35 * 10**11 / (R * T) * (Fe/rho_Fe)
-# cm44 = 1.18 * 10**11 / (R * T) * (Fe/rho_Fe)
+cm = np.array([
+    [93.9, 52.2, -26.2],
+    [  0,  82.1, -19.5],
+    [  0,     0,  44.2]
+]) * 10**9 / (R * T) * v_or * 10**(-30) * 6.02 * 10**23 / 4
 
-# cm11 = 2.33 * 10**11 / (R * T) * (Fe/rho_Fe)
-# cm12 = 1.35 * 10**11 / (R * T) * (Fe/rho_Fe)
-# cm44 = 1.18 * 10**11 / (R * T) * (Fe/rho_Fe)
-# cp11 = cm11 
-# cp12 = cm12 
-# cp44 = cm44 
+#--------------------------------------------------
+# cubic
+#--------------------------------------------------
+# a = (0.286 * 10**(-9)) ** 3 * 6.02 * 10**23 / 2
 
-#%%
+# cp11 = 4.63 * 10**11 / (R * T) * (a)
+# cp12 = 1.61 * 10**11 / (R * T) * (a)
+# cp44 = 1.09 * 10**11 / (R * T) * (a)
+# cp = np.array([
+#     [cp11, cp12,    0],
+#     [0,    cp11,    0],
+#     [0,      0,  cp44]
+# ])
+# cm11 = 2.33 * 10**11 / (R * T) * (a)
+# cm12 = 1.35 * 10**11 / (R * T) * (a)
+# cm44 = 1.18 * 10**11 / (R * T) * (a)
+# cm = np.array([
+#     [cm11, cm12,    0],
+#     [0,    cm11,    0],
+#     [0,      0,  cm44]
+# ])
+# ei0 = np.array([
+#     [0.05, 0],
+#     [0,    0.05],
+# ])
 
-# strain components due to lattice defects
-# zero tensor
-# ed11 = np.zeros((Nx, Ny))
-# ed22 = np.zeros((Nx, Ny))
-# ed12 = np.zeros((Nx, Ny))
 
 # applied strains
-ea = np.array([0.00, 0.00, 0.0])
+ea = np.array([0.00, 0.00, 0.00])
 
 # initialize stress
 s11 = np.zeros((Nx, Ny))
@@ -103,16 +114,15 @@ e11 = np.zeros((Nx, Ny))
 e22 = np.zeros((Nx, Ny))
 e12 = np.zeros((Nx, Ny))
 # %%
-con = np.load('../data/con1.npy')
 # con = micro_ch_pre(Nx, Ny, c0, noise)
-# con
+con = np.load('../data/con1.npy')
 # %%
 bulk = np.sum(con) / (Nx * Ny)
 
 # %%
 kx, ky, k2, k4 = prepare_fft(Nx, Ny, dx, dy)
 # %%
-tmatx = green_tensor(Nx,Ny,kx,ky,cm11,cm12,cm44,cp11,cp12,cp44)
+tmatx = green_tensor(Nx,Ny,kx,ky,cp,cm)
 
 # %%
 
@@ -120,7 +130,7 @@ for istep in range(1, nstep + 1):
     ttime += dtime
     
     # Calculate derivatives of free energy and elastic energy
-    delsdc, et11, et22, et12, s11, s22, s12, el = solve_elasticity_v2(Nx,Ny,tmatx,cm11,cm12,cm44,cp11,cp12,cp44,ea,ei0,con)
+    delsdc, et11, et22, et12, s11, s22, s12, el = solve_elasticity_v2(Nx,Ny,tmatx,cm,cp,ea,ei0,con)
 
     # print(delsdc)
     # raise TypeError()

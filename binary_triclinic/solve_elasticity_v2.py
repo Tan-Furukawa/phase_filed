@@ -1,6 +1,6 @@
 import numpy as np
 
-def solve_elasticity_v2(Nx, Ny, tmatx, cm11, cm12, cm44, cp11, cp12, cp44, ea, ei0, con):
+def solve_elasticity_v2(Nx, Ny, tmatx, cm, cp, ea, ei0, con):
     # np.set_printoptions(precision=15)
 
     niter = 10
@@ -21,10 +21,13 @@ def solve_elasticity_v2(Nx, Ny, tmatx, cm11, cm12, cm44, cp11, cp12, cp44, ea, e
     # ei * c(x) where c(x) is concentration of precipitants at point x
     # ei = ei11 ei12 = ei11  0
     #      ei21 ei22    0   ei22
+    ei011 = ei0[0,0]
+    ei022 = ei0[1,1]
+    ei012 = ei0[0,1]
 
-    ei11 = ei0 * con
-    ei22 = ei0 * con
-    ei12 = 0.0 * con
+    ei11 = ei0[0,0] * con
+    ei22 = ei0[1,1] * con
+    ei12 = ei0[0,1] * con
 
     # calculate effective elastic constants
     # effective elastic constant: 
@@ -35,10 +38,26 @@ def solve_elasticity_v2(Nx, Ny, tmatx, cm11, cm12, cm44, cp11, cp12, cp44, ea, e
     #      c12 c11  0   0 
     #       0   0  c44  0 
     #       0   0   0  c44
+    cp11 = cp[0,0]
+    cp12 = cp[0,1]
+    cp22 = cp[1,1]
+    cp14 = cp[0,2]
+    cp24 = cp[1,2]
+    cp44 = cp[2,2]
 
-    c11 = con * cp11 + (1.0 - con) * cm11
-    c12 = con * cp12 + (1.0 - con) * cm12
-    c44 = con * cp44 + (1.0 - con) * cm44
+    cm11 = cm[0,0]
+    cm12 = cm[0,1]
+    cm22 = cm[1,1]
+    cm14 = cm[0,2]
+    cm24 = cm[1,2]
+    cm44 = cm[2,2]
+
+    c11 = con * cp[0,0] + (1.0 - con) * cm[0,0]
+    c12 = con * cp[0,1] + (1.0 - con) * cm[0,1]
+    c22 = con * cp[1,1] + (1.0 - con) * cm[1,1]
+    c14 = con * cp[0,2] + (1.0 - con) * cm[0,2]
+    c24 = con * cp[1,2] + (1.0 - con) * cm[1,2]
+    c44 = con * cp[2,2] + (1.0 - con) * cm[2,2]
 
     for iter in range(niter):
 
@@ -120,15 +139,41 @@ def solve_elasticity_v2(Nx, Ny, tmatx, cm11, cm12, cm44, cp11, cp12, cp44, ea, e
 
     # del E / del c
     # E = Cijkl * et_ij * et_kl
-    # del E / del c = (Cp - Cm) * et_ij * et_kl + 2ei0 * Cijkl * et_kl
+    # C = 1/2 (Cp + Cm) - (1/2 - c)(Cp - Cm), del C /del c = Cp - Cm
+    # del E / del c = (Cp - Cm) * et_ij * et_kl - 2ei0 * Cijkl * et_kl * δ_ij
+
+    # del et / del c = ei0はあってる？弾性ひずみは濃度の関数ではない？
+
 
     el = 0.5 * (et11 ** 2 * c11 + et22 ** 2 * c11 + 2 * et11 * c12 * et22 + 4 * et12 ** 2 * c44)
+    # print(el)
+    # raise TypeError()
+
     # delsdc0 = 0.5 * (et11 * ((cp12 - cm12) * et22 + (cp11 - cm11) * et11 - c12 * ei0 - c11 * ei0) \
     #     - ei0 * (c12 * et22 + c11 * et11) + ((cp11 - cm11) * et22 + (cp12 - cm12) * et11 - c12 * ei0 - c11 * ei0) * et22 \
     #     - ei0 * (c11 * et22 + c12 * et11) + 2.0 * (cp44 - cm44) * et12**2 - 4.0 * ei0 * c44 * et12)
-    delsdc0 = 0.5 * (et11 * ((cp12 - cm12) * et22 + (cp11 - cm11) * et11 - c12 * ei0 - c11 * ei0) \
-        - ei0 * (c12 * et22 + c11 * et11) + ((cp11 - cm11) * et22 + (cp12 - cm12) * et11 - c12 * ei0 - c11 * ei0) * et22 \
-        - ei0 * (c11 * et22 + c12 * et11) + 4.0 * (cp44 - cm44) * et12**2)
+    # delsdc0 = 0.5 * (et11 * ((cp12 - cm12) * et22 + (cp11 - cm11) * et11 - c12 * ei0 - c11 * ei0) \
+    #     - ei0 * (c12 * et22 + c11 * et11) + ((cp11 - cm11) * et22 + (cp12 - cm12) * et11 - c12 * ei0 - c11 * ei0) * et22 \
+    #     - ei0 * (c11 * et22 + c12 * et11) + 4.0 * (cp44 - cm44) * et12**2)
+
+    # print(ei11)
+    # print(np.sum(cp14))
+    # print(np.sum(cm14))
+    # print(np.sum(ei12))
+    # print(np.sum(ei22 != ei11))
+    # print(np.sum(c24))
+    # print(np.sum(c14))
+    # print(np.sum(cp24))
+    # print(np.sum(cm24))
+    # print(np.sum(c11 != c22))
+    # print(np.sum(cp11 != cp22))
+    # print(np.sum(cm11 != cm22))
+    delsdc0 = 0.5 * (
+        4*(-cm14 + cp14)*et11*et12 + 4*(-cm24 + cp24)*et12*et22 + 4*(-cm44 + cp44)*et12**2 \
+        - 2*c11*ei011*et11 - 2*c12*ei011*et22 - 2*c12*ei022*et11 \
+        - 4*c14*ei011*et12 - 4*c14*ei012*et11 - 2*c22*ei022*et22 - 4*c24*ei012*et22 - 4*c24*ei022*et12 \
+        - 8*c44*ei012*et12 + (cp11-cm11)*et11**2 + 2*(cp12-cm12)*et11*et22 + (cp22-cm22)*et22**2
+    )
 
     return (delsdc0, et11, et22, et12 ,s11, s22, s12, el)
 
@@ -136,14 +181,14 @@ def solve_elasticity_v2(Nx, Ny, tmatx, cm11, cm12, cm44, cp11, cp12, cp44, ea, e
 #     et11 * (
 #         (cp12 - cm12) * et22 
 #         + (cp11 - cm11) * et11 
-#         - 2 * c12 * ei0 
-#         - 2 * c11 * ei0
+#         - 2 * c12 * ei22
+#         - 2 * c11 * ei11
 #     )
 #     + et22 * (
 #         (cp11 - cm11) * et22 +
 #          (cp12 - cm12) * et11 
-#          - 2 * c12 * ei0 
-#          - 2 * c11 * ei0
+#          - 2 * c12 * ei11
+#          - 2 * c11 * ei
 #     ) 
 #     + 2.0 * (cp44 - cm44) * et12**2 
 #     - 4.0 * ei0 * c44 * et12

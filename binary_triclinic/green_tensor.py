@@ -1,40 +1,35 @@
 import numpy as np
 
-def green_tensor (Nx, Ny, kx, ky, cm11, cm12, cm44, cp11, cp12, cp44):
+def green_tensor (Nx, Ny, kx, ky, cp, cm):
 
   # cubic elastic constant
   # C = 
-  # c11 c12  0   0  
-  # c12 c11  0   0 
-  #  0   0  c44  0 
-  #  0   0   0  c44
+  # c11 c12  0 
+  # c12 c11  0 
+  #  0   0  c44
 
-  c11 = 0.5 * (cm11 + cp11)
-  c12 = 0.5 * (cm12 + cp12)
-  # c44 = 0.5 * (cm44 + cp44)
-  c44 = 0.5 * (cm44 + cp44)
-
-  chi = (c11 - c12 - 2.0 * c44) / c44
+  c = 0.5 * (cm + cp)
 
   omeg11 = np.zeros((Nx, Ny))
   omeg22 = np.zeros((Nx, Ny))
   omeg12 = np.zeros((Nx, Ny))
   for i in range(Nx):
     for j in range(Ny):
-
-      rr = kx[i]**2 + ky[j]**2
-      d0 = c11 * rr**3 + chi * (c11 + c12) * rr * (kx[i]**2 * ky[j]**2)
-
-      if(rr < 1.0e-8):
-        print("rr is smaller than 1e-8")
-        d0=1.0
-      
+      # if(rr < 1.0e-8): #これでいいの？
+      #   d0=1.0
+      a11 = c[0, 0]*kx[i]**2 + 2*c[0, 2]*kx[i]*ky[j] + c[2, 2]*ky[j]**2
+      a12 = c[0, 1]*kx[i]*ky[j] + c[0, 2]*kx[i]**2 + c[1, 2]*ky[j]**2 + c[2, 2]*kx[i]*ky[j]
+      a22 = c[1, 1]*ky[j]**2 + 2*c[1, 2]*kx[i]*ky[j] + c[2, 2]*kx[i]**2
+      det = a11*a22 - a12**2
+      if(det == 0): #これでいいの？
+        det=1.0 * c[2, 2]
 
       # omeg_ik = (C_ijkl * k_j * k_l)^-1
-      omeg11[i,j] = (c44 * rr**2 + (c11 - c44) * rr * ky[j]**2) / (c44*d0)
-      omeg22[i,j] = (c44 * rr**2 + (c11 - c44) * rr * kx[i]**2) / (c44*d0)
-      omeg12[i,j] = -(c12 + c44) * kx[i] * ky[j] * rr / (c44*d0)
+      omeg11[i,j] = a22 / det
+      omeg12[i,j] = -a12 / det
+      omeg22[i,j] = a11 / det
   
+  # print(omeg22)
   tmatx = np.zeros((Nx, Ny, 2, 2, 2, 2))
 
   # gmatx:
