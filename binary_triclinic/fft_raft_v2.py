@@ -8,9 +8,9 @@ from green_tensor import green_tensor
 from solve_elasticity_v2 import solve_elasticity_v2
 from free_energ_ch_v2 import free_energ_ch_v2
 import matplotlib.pyplot as plt
-
 import time
 from scipy.fftpack import fft2, ifft2
+from _plot import dim2_plot as myplt
 
 #%%
 time0 = time.time()
@@ -51,53 +51,53 @@ w = 3
 #--------------------------------------------------
 # feldspar
 #--------------------------------------------------
-# ei0 = np.array([
-#     [0.0567, 0.0168959163898733],
-#     [0.0168959163898733, 0.016857698027364],
-# ])
+ei0 = np.array([
+    [0.0567, 0.0168959163898733],
+    [0.0168959163898733, 0.016857698027364],
+])
 
-# v_or = 8.60 * 13.2  * 7.18 * np.sin(116 / 180 * np.pi)
-# v_ab = 8.15 * 12.85 * 7.12 * np.sin(116 / 180 * np.pi)
+v_or = 8.60 * 13.2  * 7.18 * np.sin(116 / 180 * np.pi)
+v_ab = 8.15 * 12.85 * 7.12 * np.sin(116 / 180 * np.pi)
 
-# # Cij[GPa] * 10^9 * v[Å] * 10*(-30) * NA[/mol] = [/mol]
-# # [Pa/J] = [1/L3]
-# cp = np.array([
-#     [93.9, 52.2, -26.2],
-#     [  0,  82.1, -19.5],
-#     [  0,     0,  44.2]
-# ]) * 10**9 / (R * T) * v_ab * 10**(-30) * 6.02 * 10**23 / 4
+# Cij[GPa] * 10^9 * v[Å] * 10*(-30) * NA[/mol] = [/mol]
+# [Pa/J] = [1/L3]
+cp = np.array([
+    [93.9, 52.2, -26.2],
+    [  0,  82.1, -19.5],
+    [  0,     0,  44.2]
+]) * 10**9 / (R * T) * v_ab * 10**(-30) * 6.02 * 10**23 / 4
 
-# cm = np.array([
-#     [93.9, 52.2, -26.2],
-#     [  0,  82.1, -19.5],
-#     [  0,     0,  44.2]
-# ]) * 10**9 / (R * T) * v_or * 10**(-30) * 6.02 * 10**23 / 4
+cm = np.array([
+    [93.9, 52.2, -26.2],
+    [  0,  82.1, -19.5],
+    [  0,     0,  44.2]
+]) * 10**9 / (R * T) * v_or * 10**(-30) * 6.02 * 10**23 / 4
 
 #--------------------------------------------------
 # cubic
 #--------------------------------------------------
-a = (0.286 * 10**(-9)) ** 3 * 6.02 * 10**23 / 2
+# a = (0.286 * 10**(-9)) ** 3 * 6.02 * 10**23 / 2
 
-cp11 = 4.63 * 10**11 / (R * T) * (a)
-cp12 = 1.61 * 10**11 / (R * T) * (a)
-cp44 = 1.09 * 10**11 / (R * T) * (a)
-cp = np.array([
-    [cp11, cp12,    0],
-    [0,    cp11,    0],
-    [0,      0,  cp44]
-])
-cm11 = 2.33 * 10**11 / (R * T) * (a)
-cm12 = 1.35 * 10**11 / (R * T) * (a)
-cm44 = 1.18 * 10**11 / (R * T) * (a)
-cm = np.array([
-    [cm11, cm12,    0],
-    [0,    cm11,    0],
-    [0,      0,  cm44]
-])
-ei0 = np.array([
-    [0.05, 0],
-    [0,    0.05],
-])
+# cp11 = 4.63 * 10**11 / (R * T) * (a)
+# cp12 = 1.61 * 10**11 / (R * T) * (a)
+# cp44 = 1.09 * 10**11 / (R * T) * (a)
+# cp = np.array([
+#     [cp11, cp12,    0],
+#     [0,    cp11,    0],
+#     [0,      0,  cp44]
+# ])
+# cm11 = 2.33 * 10**11 / (R * T) * (a)
+# cm12 = 1.35 * 10**11 / (R * T) * (a)
+# cm44 = 1.18 * 10**11 / (R * T) * (a)
+# cm = np.array([
+#     [cm11, cm12,    0],
+#     [0,    cm11,    0],
+#     [0,      0,  cm44]
+# ])
+# ei0 = np.array([
+#     [0.05, 0],
+#     [0,    0.05],
+# ])
 #--------------------------------------------------
 
 # ei011 = ei0[0,0]
@@ -180,38 +180,15 @@ for istep in range(1, nstep + 1):
     #     raise TypeError()
 
     if (istep % nprint == 0) or (istep == 1) or (np.mean(con)/bulk <0.99):
-        # plt.plot(energy_el,label='el')
-        # plt.plot(energy_g, label='g')
-        # plt.plot(energy_g + energy_el, label = "bulk")
-        # plt.legend()
-        # plt.show()
-        # print(f"done step: {istep}")
-        # plt.imshow(el, cmap='plasma', interpolation='nearest')
-        # plt.colorbar()  # カラーバーを追加
-        # plt.title('energy')
-        plt.hist(con.flatten(),bins=300,range=(0,1))
-        plt.show()
+        # plt.imshow(con_disp)の図の向きは、
+        # y
+        # ↑
+        # |
+        # + --→ x [100]
+        # となる。
+        con_disp = np.flipud(con.transpose())
+        myplt.get_matrix_image(con_disp)
 
-        # plt.imshow(con, cmap='Greys', interpolation='nearest')
-        # # plt.imshow(s11+s22+s12, cmap='viridis', interpolation='nearest')
-        # plt.colorbar()  # カラーバーを追加
-        # plt.title('concentration')
-        # plt.show()
-
-        cmap = plt.get_cmap('Greys') 
-        norm = Normalize(vmin=0, vmax=1)  # カラーマップの正規化
-        # con < 0 のセルを赤色に変更
-        cmap.set_under('blue')  # 下限を青に設定
-        cmap.set_over('red')    # 上限を赤に設定
-
-        # プロット
-        plt.imshow(con, cmap=cmap, norm=norm)
-        # plt.imshow(conk)
-        plt.colorbar()  # カラーバーを追加
-        plt.title('concentration')
-        plt.show()
-
-        # Write results to files or perform other output actions
 
 # Calculate compute time
 compute_time = time.process_time() - time0

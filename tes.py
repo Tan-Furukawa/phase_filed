@@ -1,26 +1,13 @@
 #%%
-import matplotlib.pyplot as plt
 import numpy as np
 
-# データを生成
-data = np.random.rand(10, 10)  # 仮のデータ
-vmin = 0.2  # 下限
-vmax = 0.8  # 上限
-norm = plt.Normalize(vmin, vmax)
+repeat_n = 2
+mat_size = 10
 
-# カラーマップを設定
-cmap = plt.get_cmap('viridis')  # 例として'viridis'を使用
-
-# カラーマップの下限と上限を設定
-cmap.set_under('blue')  # 下限を青に設定
-cmap.set_over('red')    # 上限を赤に設定
-
-# プロットを作成
-plt.imshow(data, cmap=cmap,norm=norm)
-
-# カラーバーを表示
-plt.colorbar()
-
-# プロットを表示
-plt.show()
-#%%
+def make_partial_True_matrix(repeat_n, mat_size):
+  mat = np.full((mat_size,mat_size), False)
+  a = np.arange(0, mat_size, repeat_n)
+  x_index = np.repeat(a, len(a))
+  y_index = np.tile(a, len(a))
+  mat[x_index.tolist(), y_index.tolist()] = True
+  return mat
