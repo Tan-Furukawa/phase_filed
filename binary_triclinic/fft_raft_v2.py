@@ -1,4 +1,5 @@
 #%%
+from matplotlib.colors import Normalize
 import numpy as np
 # import matplotlib.pyplot as plt
 from micro_ch_pre import micro_ch_pre
@@ -11,10 +12,8 @@ import matplotlib.pyplot as plt
 import time
 from scipy.fftpack import fft2, ifft2
 
-
 #%%
 time0 = time.time()
-
 
 Nx = 64
 Ny = 64
@@ -28,7 +27,7 @@ ttime = 0.0
 coefA = 1.0
 c0 = 0.40
 mobility = 1.0
-grad_coef = 0.4
+grad_coef = 1
 noise = 0.1
 
 energy_g = np.zeros(nstep) + np.nan
@@ -42,7 +41,7 @@ energy_el = np.zeros(nstep) + np.nan
 # cm44 = 400.0
 
 R = 8.31446262
-T = 773
+T = 700
 
 w = 3
 #%%
@@ -52,54 +51,63 @@ w = 3
 #--------------------------------------------------
 # feldspar
 #--------------------------------------------------
-ei0 = np.array([
-    [0.0567, 0.0168959163898733],
-    [0.0168959163898733, 0.016857698027364],
-])
+# ei0 = np.array([
+#     [0.0567, 0.0168959163898733],
+#     [0.0168959163898733, 0.016857698027364],
+# ])
 
-v_or = 8.60 * 13.2  * 7.18 * np.sin(116 / 180 * np.pi)
-v_ab = 8.15 * 12.85 * 7.12 * np.sin(116 / 180 * np.pi)
+# v_or = 8.60 * 13.2  * 7.18 * np.sin(116 / 180 * np.pi)
+# v_ab = 8.15 * 12.85 * 7.12 * np.sin(116 / 180 * np.pi)
 
-# Cij[GPa] * 10^9 * v[Å] * 10*(-30) * NA[/mol] = [/mol]
-# [Pa/J] = [1/L3]
-cp = np.array([
-    [93.9, 52.2, -26.2],
-    [  0,  82.1, -19.5],
-    [  0,     0,  44.2]
-]) * 10**9 / (R * T) * v_ab * 10**(-30) * 6.02 * 10**23 / 4
+# # Cij[GPa] * 10^9 * v[Å] * 10*(-30) * NA[/mol] = [/mol]
+# # [Pa/J] = [1/L3]
+# cp = np.array([
+#     [93.9, 52.2, -26.2],
+#     [  0,  82.1, -19.5],
+#     [  0,     0,  44.2]
+# ]) * 10**9 / (R * T) * v_ab * 10**(-30) * 6.02 * 10**23 / 4
 
-cm = np.array([
-    [93.9, 52.2, -26.2],
-    [  0,  82.1, -19.5],
-    [  0,     0,  44.2]
-]) * 10**9 / (R * T) * v_or * 10**(-30) * 6.02 * 10**23 / 4
+# cm = np.array([
+#     [93.9, 52.2, -26.2],
+#     [  0,  82.1, -19.5],
+#     [  0,     0,  44.2]
+# ]) * 10**9 / (R * T) * v_or * 10**(-30) * 6.02 * 10**23 / 4
 
 #--------------------------------------------------
 # cubic
 #--------------------------------------------------
-# a = (0.286 * 10**(-9)) ** 3 * 6.02 * 10**23 / 2
+a = (0.286 * 10**(-9)) ** 3 * 6.02 * 10**23 / 2
 
-# cp11 = 4.63 * 10**11 / (R * T) * (a)
-# cp12 = 1.61 * 10**11 / (R * T) * (a)
-# cp44 = 1.09 * 10**11 / (R * T) * (a)
-# cp = np.array([
-#     [cp11, cp12,    0],
-#     [0,    cp11,    0],
-#     [0,      0,  cp44]
-# ])
-# cm11 = 2.33 * 10**11 / (R * T) * (a)
-# cm12 = 1.35 * 10**11 / (R * T) * (a)
-# cm44 = 1.18 * 10**11 / (R * T) * (a)
-# cm = np.array([
-#     [cm11, cm12,    0],
-#     [0,    cm11,    0],
-#     [0,      0,  cm44]
-# ])
-# ei0 = np.array([
-#     [0.05, 0],
-#     [0,    0.05],
-# ])
+cp11 = 4.63 * 10**11 / (R * T) * (a)
+cp12 = 1.61 * 10**11 / (R * T) * (a)
+cp44 = 1.09 * 10**11 / (R * T) * (a)
+cp = np.array([
+    [cp11, cp12,    0],
+    [0,    cp11,    0],
+    [0,      0,  cp44]
+])
+cm11 = 2.33 * 10**11 / (R * T) * (a)
+cm12 = 1.35 * 10**11 / (R * T) * (a)
+cm44 = 1.18 * 10**11 / (R * T) * (a)
+cm = np.array([
+    [cm11, cm12,    0],
+    [0,    cm11,    0],
+    [0,      0,  cm44]
+])
+ei0 = np.array([
+    [0.05, 0],
+    [0,    0.05],
+])
+#--------------------------------------------------
 
+# ei011 = ei0[0,0]
+# ei012 = ei0[0,1]
+# ei022 = ei0[1,1]
+
+# cp11 * ei011 + cp12 * ei022 + 0 * ei012
+# 0 * ei011 + cp11 * ei022 + 0 * ei012
+# 0 * ei011 + 0    * ei022 + cp44 * ei012
+#%%
 
 # applied strains
 ea = np.array([0.00, 0.00, 0.00])
@@ -117,7 +125,7 @@ e12 = np.zeros((Nx, Ny))
 # con = micro_ch_pre(Nx, Ny, c0, noise)
 con = np.load('../data/con1.npy')
 # %%
-bulk = np.sum(con) / (Nx * Ny)
+bulk = np.mean(con)
 
 # %%
 kx, ky, k2, k4 = prepare_fft(Nx, Ny, dx, dy)
@@ -152,18 +160,26 @@ for istep in range(1, nstep + 1):
     con = np.real(ifft2(conk))
     
     # Clip small deviations
-    con = np.clip(con, 0.00001, 0.9999)
+    # con = np.clip(con, 0.00001, 0.9999)
+    # print(np.mean(con))
+    con = con * (1 + np.sum(con[con < 0])/bulk)
+    con = con * (1 + np.sum(con[con > 1])/bulk)
+    con[con < 0] = 0
+    con[con > 1] = 1
     # print("----------")
     # print(bulk)
     # print(np.sum(con)/ len(con))
     # # バルク規格化
     # print("----------")
-    con = bulk - np.sum(con) / (Nx * Ny) + con
+    # con = bulk - np.sum(con) / (Nx * Ny) + con
     # con[0,0] = 0
     # con[Nx-1,Nx-1] = 1
     
     # Print results
-    if (istep % nprint == 0) or (istep == 1):
+    # if ((np.mean(con)/bulk <0.99)):
+    #     raise TypeError()
+
+    if (istep % nprint == 0) or (istep == 1) or (np.mean(con)/bulk <0.99):
         # plt.plot(energy_el,label='el')
         # plt.plot(energy_g, label='g')
         # plt.plot(energy_g + energy_el, label = "bulk")
@@ -173,9 +189,24 @@ for istep in range(1, nstep + 1):
         # plt.imshow(el, cmap='plasma', interpolation='nearest')
         # plt.colorbar()  # カラーバーを追加
         # plt.title('energy')
+        plt.hist(con.flatten(),bins=300,range=(0,1))
+        plt.show()
+
+        # plt.imshow(con, cmap='Greys', interpolation='nearest')
+        # # plt.imshow(s11+s22+s12, cmap='viridis', interpolation='nearest')
+        # plt.colorbar()  # カラーバーを追加
+        # plt.title('concentration')
         # plt.show()
-        plt.imshow(con, cmap='Greys', interpolation='nearest')
-        # plt.imshow(s11+s22+s12, cmap='viridis', interpolation='nearest')
+
+        cmap = plt.get_cmap('Greys') 
+        norm = Normalize(vmin=0, vmax=1)  # カラーマップの正規化
+        # con < 0 のセルを赤色に変更
+        cmap.set_under('blue')  # 下限を青に設定
+        cmap.set_over('red')    # 上限を赤に設定
+
+        # プロット
+        plt.imshow(con, cmap=cmap, norm=norm)
+        # plt.imshow(conk)
         plt.colorbar()  # カラーバーを追加
         plt.title('concentration')
         plt.show()
