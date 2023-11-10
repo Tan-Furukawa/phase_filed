@@ -1,6 +1,6 @@
 import numpy as np
 
-def solve_elasticity_v2(Nx, Ny, tmatx, cm, cp, ea, ei0, con):
+def solve_elasticity_v2(Nx, Ny, tmatx, cm, cp, ea, ei0, con,c0):
     # np.set_printoptions(precision=15)
 
     niter = 10
@@ -25,19 +25,18 @@ def solve_elasticity_v2(Nx, Ny, tmatx, cm, cp, ea, ei0, con):
     ei022 = ei0[1,1]
     ei012 = ei0[0,1]
 
-    ei11 = ei0[0,0] * con
-    ei22 = ei0[1,1] * con
-    ei12 = ei0[0,1] * con
+    ei11 = ei0[0,0] * (con-c0)
+    ei22 = ei0[1,1] * (con-c0)
+    ei12 = ei0[0,1] * (con-c0)
 
     # calculate effective elastic constants
     # effective elastic constant: 
     # C = c(r)Cp + (1-c(r))Cm = (Cm + Cp)/2 + 1/2 * (1 - c(r))(Cp - Cm)
     # cubic elastic constant
     # 1111 = 11 # 1122 = 12 # 2222 = 22 # 1212 = 44
-    # C =  c11 c12  0   0  
-    #      c12 c11  0   0 
-    #       0   0  c44  0 
-    #       0   0   0  c44
+    # C =  c11 c12  0 
+    #      c12 c11  0 
+    #       0   0  c44
     cp11 = cp[0,0]
     cp12 = cp[0,1]
     cp22 = cp[1,1]
@@ -62,7 +61,6 @@ def solve_elasticity_v2(Nx, Ny, tmatx, cm, cp, ea, ei0, con):
     for iter in range(niter):
 
         #--- take the stresses & strains to Fourier space
-        # print(np.sum(s11))
 
         # strain
         e11k = np.fft.fft2(e11)
@@ -114,12 +112,10 @@ def solve_elasticity_v2(Nx, Ny, tmatx, cm, cp, ea, ei0, con):
 
         # s = C * (ea + e - ei)
 
-        s11 = c11 * (ea[0] + e11 - ei11) + c12 * (ea[1] + e22 - ei22)
-        # print(ei11)
-        # print(s11)
-        # raise TypeError()
-        s22 = c11 * (ea[1] + e22 - ei22) + c12 * (ea[0] + e11 - ei11)
-        s12 = 2.0 * c44 * (ea[2] + e12 - ei12)
+        s11 = c11 * (ea[0] + e11 - ei11) + c12 * (ea[1] + e22 - ei22) + 2.0 * c14 * (ea[2] + e12 - ei12)
+        s22 = c12 * (ea[0] + e11 - ei11) + c22 * (ea[1] + e22 - ei22) + 2.0 * c24 * (ea[2] + e12 - ei12)
+        s12 = c14 * (ea[2] + e11 - ei11) + c24 * (ea[1] + e22 - ei22) + 2.0 * c44 * (ea[2] + e12 - ei12)
+        # s12 = 2.0 * c44 * (ea[2] + e12 - ei12)
 
         #---check convergence:
         sum_stres = s11 + s22 + s12
@@ -131,7 +127,7 @@ def solve_elasticity_v2(Nx, Ny, tmatx, cm, cp, ea, ei0, con):
         old_norm = normF
 
     #--- strain energy:
-    # et: elastic strain components:
+    # et: elastic strain components: # 名前わかりにくい！
     # e: total strain
     et11 = ea[0] + e11 - ei11
     et22 = ea[1] + e22 - ei22
@@ -145,10 +141,6 @@ def solve_elasticity_v2(Nx, Ny, tmatx, cm, cp, ea, ei0, con):
     # del et / del c = ei0はあってる？弾性ひずみは濃度の関数ではない？
 
 
-    el = 0.5 * (et11 ** 2 * c11 + et22 ** 2 * c11 + 2 * et11 * c12 * et22 + 4 * et12 ** 2 * c44)
-    # print(el)
-    # raise TypeError()
-
     # delsdc0 = 0.5 * (et11 * ((cp12 - cm12) * et22 + (cp11 - cm11) * et11 - c12 * ei0 - c11 * ei0) \
     #     - ei0 * (c12 * et22 + c11 * et11) + ((cp11 - cm11) * et22 + (cp12 - cm12) * et11 - c12 * ei0 - c11 * ei0) * et22 \
     #     - ei0 * (c11 * et22 + c12 * et11) + 2.0 * (cp44 - cm44) * et12**2 - 4.0 * ei0 * c44 * et12)
@@ -156,18 +148,6 @@ def solve_elasticity_v2(Nx, Ny, tmatx, cm, cp, ea, ei0, con):
     #     - ei0 * (c12 * et22 + c11 * et11) + ((cp11 - cm11) * et22 + (cp12 - cm12) * et11 - c12 * ei0 - c11 * ei0) * et22 \
     #     - ei0 * (c11 * et22 + c12 * et11) + 4.0 * (cp44 - cm44) * et12**2)
 
-    # print(ei11)
-    # print(np.sum(cp14))
-    # print(np.sum(cm14))
-    # print(np.sum(ei12))
-    # print(np.sum(ei22 != ei11))
-    # print(np.sum(c24))
-    # print(np.sum(c14))
-    # print(np.sum(cp24))
-    # print(np.sum(cm24))
-    # print(np.sum(c11 != c22))
-    # print(np.sum(cp11 != cp22))
-    # print(np.sum(cm11 != cm22))
     delsdc0 = 0.5 * (
         4*(-cm14 + cp14)*et11*et12 + 4*(-cm24 + cp24)*et12*et22 + 4*(-cm44 + cp44)*et12**2 \
         - 2*c11*ei011*et11 - 2*c12*ei011*et22 - 2*c12*ei022*et11 \
@@ -175,7 +155,9 @@ def solve_elasticity_v2(Nx, Ny, tmatx, cm, cp, ea, ei0, con):
         - 8*c44*ei012*et12 + (cp11-cm11)*et11**2 + 2*(cp12-cm12)*et11*et22 + (cp22-cm22)*et22**2
     )
 
-    return (delsdc0, et11, et22, et12 ,s11, s22, s12, el)
+    el = 0.5 * (c11*et11**2 + 2*c12*et11*et22 + 4*c14*et11*et12 + c22*et22**2 + 4*c24*et12*et22 + 4*c44*et12**2)
+
+    return (delsdc0, et11, et22, et12 ,s11, s22, s12, el, ei11)
 
 # 1/2 * (
 #     et11 * (

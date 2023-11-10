@@ -25,10 +25,10 @@ nprint = 50
 dtime = 5.0e-2
 ttime = 0.0
 coefA = 1.0
-c0 = 0.40
+c0 = 0.4
 mobility = 1.0
 grad_coef = 1
-noise = 0.1
+noise = 0.01
 
 energy_g = np.zeros(nstep) + np.nan
 energy_el = np.zeros(nstep) + np.nan
@@ -61,17 +61,19 @@ v_ab = 8.15 * 12.85 * 7.12 * np.sin(116 / 180 * np.pi)
 
 # Cij[GPa] * 10^9 * v[Å] * 10*(-30) * NA[/mol] = [/mol]
 # [Pa/J] = [1/L3]
-cp = np.array([
+cm = np.array([
     [93.9, 52.2, -26.2],
     [  0,  82.1, -19.5],
     [  0,     0,  44.2]
 ]) * 10**9 / (R * T) * v_ab * 10**(-30) * 6.02 * 10**23 / 4
 
-cm = np.array([
+# con = cpのmol濃度
+cp = np.array([
     [93.9, 52.2, -26.2],
     [  0,  82.1, -19.5],
     [  0,     0,  44.2]
 ]) * 10**9 / (R * T) * v_or * 10**(-30) * 6.02 * 10**23 / 4
+#%%
 
 #--------------------------------------------------
 # cubic
@@ -99,14 +101,6 @@ cm = np.array([
 #     [0,    0.05],
 # ])
 #--------------------------------------------------
-
-# ei011 = ei0[0,0]
-# ei012 = ei0[0,1]
-# ei022 = ei0[1,1]
-
-# cp11 * ei011 + cp12 * ei022 + 0 * ei012
-# 0 * ei011 + cp11 * ei022 + 0 * ei012
-# 0 * ei011 + 0    * ei022 + cp44 * ei012
 #%%
 
 # applied strains
@@ -122,8 +116,8 @@ e11 = np.zeros((Nx, Ny))
 e22 = np.zeros((Nx, Ny))
 e12 = np.zeros((Nx, Ny))
 # %%
-# con = micro_ch_pre(Nx, Ny, c0, noise)
-con = np.load('../data/con1.npy')
+con = micro_ch_pre(Nx, Ny, c0, noise)
+# con = np.load('../data/con1.npy')
 # %%
 bulk = np.mean(con)
 
@@ -138,7 +132,7 @@ for istep in range(1, nstep + 1):
     ttime += dtime
     
     # Calculate derivatives of free energy and elastic energy
-    delsdc, et11, et22, et12, s11, s22, s12, el = solve_elasticity_v2(Nx,Ny,tmatx,cm,cp,ea,ei0,con)
+    delsdc, et11, et22, et12, s11, s22, s12, el, ei11 = solve_elasticity_v2(Nx,Ny,tmatx,cm,cp,ea,ei0,con,c0)
 
     # print(delsdc)
     # raise TypeError()
@@ -187,7 +181,17 @@ for istep in range(1, nstep + 1):
         # + --→ x [100]
         # となる。
         con_disp = np.flipud(con.transpose())
-        myplt.get_matrix_image(con_disp)
+        # myplt.display_gradient(np.flipud(el.transpose()), isnorm=False)
+
+        myplt.get_matrix_image(con)
+
+        plt.imshow(et11)
+        plt.colorbar()
+        plt.show()
+
+        # np.sum(et11 + ei11)
+
+        # plt.plot(el[:,1])
 
 
 # Calculate compute time

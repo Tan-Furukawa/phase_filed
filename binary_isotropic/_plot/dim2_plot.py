@@ -53,7 +53,7 @@ def make_partial_True_matrix(repeat_n, mat_size):
   mat[x_index.tolist(), y_index.tolist()] = True
   return mat
 
-def display_gradient(mat, pixel_spacing=3):
+def display_gradient(mat, pixel_spacing=3, isnorm=True):
   position_x, position_y = get_matrix_position(mat)
   gradient_y, gradient_x = np.gradient(mat)
   use = make_partial_True_matrix(pixel_spacing, position_x.shape[0])
@@ -61,8 +61,11 @@ def display_gradient(mat, pixel_spacing=3):
   # 勾配ベクトルを可視化
   cmap = plt.get_cmap("Greys") 
   # カラーマップの正規化
-  norm = Normalize(vmin=-1, vmax=2) #あえて大きめ
-  plt.imshow(mat, cmap=cmap, norm=norm)
+  if (isnorm):
+    norm = Normalize(vmin=-1, vmax=2) #あえて大きめ
+    plt.imshow(mat, cmap=cmap, norm=norm)
+  else:
+    plt.imshow(mat, cmap=cmap)
   plt.quiver(position_x[use], position_y[use], -gradient_x[use], gradient_y[use], scale=10, width=0.005)
   plt.show()
 
