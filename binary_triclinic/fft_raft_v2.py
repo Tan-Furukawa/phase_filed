@@ -1,4 +1,5 @@
 #%%
+from matplotlib.colors import Normalize
 import numpy as np
 # import matplotlib.pyplot as plt
 from micro_ch_pre import micro_ch_pre
@@ -7,14 +8,12 @@ from green_tensor import green_tensor
 from solve_elasticity_v2 import solve_elasticity_v2
 from free_energ_ch_v2 import free_energ_ch_v2
 import matplotlib.pyplot as plt
-
 import time
 from scipy.fftpack import fft2, ifft2
-
+from _plot import dim2_plot as myplt
 
 #%%
 time0 = time.time()
-
 
 Nx = 64
 Ny = 64
@@ -26,10 +25,10 @@ nprint = 50
 dtime = 5.0e-2
 ttime = 0.0
 coefA = 1.0
-c0 = 0.40
+c0 = 0.4
 mobility = 1.0
-grad_coef = 0.4
-noise = 0.1
+grad_coef = 1
+noise = 0.01
 
 energy_g = np.zeros(nstep) + np.nan
 energy_el = np.zeros(nstep) + np.nan
@@ -42,7 +41,7 @@ energy_el = np.zeros(nstep) + np.nan
 # cm44 = 400.0
 
 R = 8.31446262
-T = 773
+T = 700
 
 w = 3
 #%%
@@ -62,17 +61,19 @@ v_ab = 8.15 * 12.85 * 7.12 * np.sin(116 / 180 * np.pi)
 
 # Cij[GPa] * 10^9 * v[Å] * 10*(-30) * NA[/mol] = [/mol]
 # [Pa/J] = [1/L3]
-cp = np.array([
+cm = np.array([
     [93.9, 52.2, -26.2],
     [  0,  82.1, -19.5],
     [  0,     0,  44.2]
 ]) * 10**9 / (R * T) * v_ab * 10**(-30) * 6.02 * 10**23 / 4
 
-cm = np.array([
+# con = cpのmol濃度
+cp = np.array([
     [93.9, 52.2, -26.2],
     [  0,  82.1, -19.5],
     [  0,     0,  44.2]
 ]) * 10**9 / (R * T) * v_or * 10**(-30) * 6.02 * 10**23 / 4
+#%%
 
 #--------------------------------------------------
 # cubic
@@ -99,7 +100,8 @@ cm = np.array([
 #     [0.05, 0],
 #     [0,    0.05],
 # ])
-
+#--------------------------------------------------
+#%%
 
 # applied strains
 ea = np.array([0.00, 0.00, 0.00])
@@ -114,10 +116,10 @@ e11 = np.zeros((Nx, Ny))
 e22 = np.zeros((Nx, Ny))
 e12 = np.zeros((Nx, Ny))
 # %%
-# con = micro_ch_pre(Nx, Ny, c0, noise)
-con = np.load('../data/con1.npy')
+con = micro_ch_pre(Nx, Ny, c0, noise)
+# con = np.load('../data/con1.npy')
 # %%
-bulk = np.sum(con) / (Nx * Ny)
+bulk = np.mean(con)
 
 # %%
 kx, ky, k2, k4 = prepare_fft(Nx, Ny, dx, dy)
@@ -130,7 +132,7 @@ for istep in range(1, nstep + 1):
     ttime += dtime
     
     # Calculate derivatives of free energy and elastic energy
-    delsdc, et11, et22, et12, s11, s22, s12, el = solve_elasticity_v2(Nx,Ny,tmatx,cm,cp,ea,ei0,con)
+    delsdc, et11, et22, et12, s11, s22, s12, el, ei11 = solve_elasticity_v2(Nx,Ny,tmatx,cm,cp,ea,ei0,con,c0)
 
     # print(delsdc)
     # raise TypeError()
@@ -152,35 +154,45 @@ for istep in range(1, nstep + 1):
     con = np.real(ifft2(conk))
     
     # Clip small deviations
-    con = np.clip(con, 0.00001, 0.9999)
+    # con = np.clip(con, 0.00001, 0.9999)
+    # print(np.mean(con))
+    con = con * (1 + np.sum(con[con < 0])/bulk)
+    con = con * (1 + np.sum(con[con > 1])/bulk)
+    con[con < 0] = 0
+    con[con > 1] = 1
     # print("----------")
     # print(bulk)
     # print(np.sum(con)/ len(con))
     # # バルク規格化
     # print("----------")
-    con = bulk - np.sum(con) / (Nx * Ny) + con
+    # con = bulk - np.sum(con) / (Nx * Ny) + con
     # con[0,0] = 0
     # con[Nx-1,Nx-1] = 1
     
     # Print results
-    if (istep % nprint == 0) or (istep == 1):
-        # plt.plot(energy_el,label='el')
-        # plt.plot(energy_g, label='g')
-        # plt.plot(energy_g + energy_el, label = "bulk")
-        # plt.legend()
-        # plt.show()
-        # print(f"done step: {istep}")
-        # plt.imshow(el, cmap='plasma', interpolation='nearest')
-        # plt.colorbar()  # カラーバーを追加
-        # plt.title('energy')
-        # plt.show()
-        plt.imshow(con, cmap='Greys', interpolation='nearest')
-        # plt.imshow(s11+s22+s12, cmap='viridis', interpolation='nearest')
-        plt.colorbar()  # カラーバーを追加
-        plt.title('concentration')
+    # if ((np.mean(con)/bulk <0.99)):
+    #     raise TypeError()
+
+    if (istep % nprint == 0) or (istep == 1) or (np.mean(con)/bulk <0.99):
+        # plt.imshow(con_disp)の図の向きは、
+        # y
+        # ↑
+        # |
+        # + --→ x [100]
+        # となる。
+        con_disp = np.flipud(con.transpose())
+        # myplt.display_gradient(np.flipud(el.transpose()), isnorm=False)
+
+        myplt.get_matrix_image(con)
+
+        plt.imshow(et11)
+        plt.colorbar()
         plt.show()
 
-        # Write results to files or perform other output actions
+        # np.sum(et11 + ei11)
+
+        # plt.plot(el[:,1])
+
 
 # Calculate compute time
 compute_time = time.process_time() - time0
