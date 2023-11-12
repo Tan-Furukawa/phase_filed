@@ -1,5 +1,6 @@
 #%%
 import numpy as np
+import matplotlib.pyplot as plt
 
 def prepare_fft(Nx, Ny, dx, dy):
     Nx21 = Nx // 2 + 1
@@ -38,10 +39,11 @@ def prepare_fft(Nx, Ny, dx, dy):
     return kx, ky, k2, k4
 
 # # 使い方の例
-# Nx = 8
-# Ny = 8
-# dx = 1.0
-# dy = 1.0
-# kx, ky, k2, k4 = prepare_fft(Nx, Ny, dx, dy)
+Nx = 8
+Ny = 8
+dx = 1.0
+dy = 1.0
+kx, ky, k2, k4 = prepare_fft(Nx, Ny, dx, dy)
+plt.imshow(k2)
 
 #%%
