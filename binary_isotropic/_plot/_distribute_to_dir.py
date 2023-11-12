@@ -10,4 +10,7 @@ shutil.copytree(current_directory, destination_directory,dirs_exist_ok=True)
 
 destination_directory = "../binary_isotropic/_plot" 
 shutil.copytree(current_directory, destination_directory,dirs_exist_ok=True)
+
+destination_directory = "../binary_monoclinic_3d/_plot" 
+shutil.copytree(current_directory, destination_directory,dirs_exist_ok=True)
 #%%

@@ -125,6 +125,8 @@ bulk = np.mean(con)
 kx, ky, k2, k4 = prepare_fft(Nx, Ny, dx, dy)
 # %%
 tmatx = green_tensor(Nx,Ny,kx,ky,cp,cm)
+# plt.imshow(tmatx[:,:,0,0,0,0])
+# plt.colorbar()
 
 # %%
 
