@@ -31,5 +31,6 @@ def display_3d_matrix(data):
   plt.cm.BrBG(ndata[-1,:,:])
   plt.show()
 
-# data = np.linspace(-5, 10, num=3*4*5).reshape((3, 4, 5))
-# display_3d_matrix(data)
+if __name__ == '__main__':
+  data = np.linspace(-5, 10, num=3*4*5).reshape((3, 4, 5))
+  display_3d_matrix(data)

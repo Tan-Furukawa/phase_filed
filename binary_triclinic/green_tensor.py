@@ -13,6 +13,7 @@ def green_tensor (Nx, Ny, kx, ky, cp, cm):
   omeg11 = np.zeros((Nx, Ny))
   omeg22 = np.zeros((Nx, Ny))
   omeg12 = np.zeros((Nx, Ny))
+
   for i in range(Nx):
     for j in range(Ny):
       # if(rr < 1.0e-8): #これでいいの？
@@ -59,5 +60,5 @@ def green_tensor (Nx, Ny, kx, ky, cp, cm):
                             gmatx[ll, jj] * dvect[ii] * dvect[kk] +
                             gmatx[kk, jj] * dvect[ii] * dvect[ll]
                         )
-  return tmatx
+  return tmatx, omeg11
     
