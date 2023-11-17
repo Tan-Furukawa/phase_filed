@@ -1,7 +1,8 @@
 # # import numpy as np
 #%%
-import multiprocessing
+import multiprocess as mp
 import time
+import numpy as np
 
 # プロセスを作成
 # target=lambda q, func: q.put(func()), args=(results, func)
@@ -9,8 +10,8 @@ def f1():
     num=0
     for i in range(5000000):
         num += i
-        # 何らかの非同期処理を実行
     return num
+    return 1
 
 def f2():
     num=0
@@ -19,15 +20,15 @@ def f2():
     return num
 
 def target(q, fn):
-    return q.put(fn())
+    q.put(fn())
 
 def mul():
 
-    results = multiprocessing.Queue()
+    results = mp.Queue()
     processes = []
 
     for func in [f1,  f2]:
-        process = multiprocessing.Process(target=target, args=(results, func))
+        process = mp.Process(target=target, args=(results, func))
         processes.append(process)
 
     for process in processes:
@@ -58,5 +59,3 @@ if __name__ == "__main__":
     f2()
     print(time.time() - start_time)
     print("----------------")
-
-#%% 

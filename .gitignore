@@ -1,4 +1,11 @@
 binary_isotropic/__pycache__
+binary_isotropic/_plot
+binary_isotropic/_save
 binary_triclinic/__pycache__
+binary_triclinic/_plot
+binary_triclinic/_save
 binary_monoclinic_3d/__pycache__
+binary_monoclinic_3d/result
+binary_monoclinic_3d/_plot
+binary_monoclinic_3d/_save
 data/
