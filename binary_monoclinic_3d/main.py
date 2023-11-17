@@ -13,6 +13,9 @@ import time
 from _plot import dim3_plot as myplt3
 
 #%%
+
+# def main():
+
 time0 = time.time()
 
 Nx = 64
@@ -162,7 +165,8 @@ for istep in range(1, nstep + 1):
 #     ttime += dtime
     
 #     # Calculate derivatives of free energy and elastic energy
-    delsdc, el, s = solve_elasticity(Nx,Ny,Nz,tmatx,cm,cp,ea,ei0,con,c0)
+    if __name__ == "__main__":
+        delsdc, s, el = solve_elasticity(Nx,Ny,Nz,tmatx,cm,cp,ea,ei0,con,c0)
     # delsdc = 0
 
 #     # print(delsdc)
@@ -233,3 +237,6 @@ for istep in range(1, nstep + 1):
 
 # #%%
 myplt3.display_3d_matrix(s[:,:,:,1])
+
+# if __name__ == "__main__":
+#     main()

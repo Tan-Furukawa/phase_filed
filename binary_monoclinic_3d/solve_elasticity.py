@@ -1,4 +1,7 @@
 import numpy as np
+import multiprocessing
+import time
+
 def solve_elasticity(Nx, Ny, Nz, tmatx, cm, cp, ea, ei0, con, c0):
     # np.set_printoptions(precision=15)
 
@@ -46,86 +49,71 @@ def solve_elasticity(Nx, Ny, Nz, tmatx, cm, cp, ea, ei0, con, c0):
         for j in range(J):
             c[:,:,:,i,j] = con * cp[i,j] + (1-con) * cm[i,j]
 
+    #-- Green operator:
+    # e[k] = e[k] - Γ:s[k]
+    def get_ematx (ii, jj, ematx, smatx):
+        for kk in range(3):
+            for ll in range(3):
+                    ematx = ematx - tmatx[:, :, :, ii, jj, kk, ll] * smatx[:, :, :, kk, ll]
+        return ematx
+
+    def get_i_j_index(i):
+        if (i==0): return (0,0) 
+        elif(i==1): return (1,1)
+        elif(i==2): return (2,2)
+        elif(i==3): return (1,2)
+        elif(i==4): return (0,2)
+        elif(i==5): return (0,1)
+        else: raise TypeError("i is 0 to 5")
+
+    ematx = np.zeros((Nx, Ny, Nz, 3, 3), dtype=np.complex128)
+    smatx = np.zeros((Nx, Ny, Nz, 3, 3), dtype=np.complex128)
+
     for iter in range(niter):
 
         #--- take the stresses & strains to Fourier space
 
+        smatx[:, :, :, 0, 0] = np.fft.fftn(s[:,:,:,0])
+        smatx[:, :, :, 1, 1] = np.fft.fftn(s[:,:,:,1])
+        smatx[:, :, :, 2, 2] = np.fft.fftn(s[:,:,:,2])
+        smatx[:, :, :, 1, 2] = np.fft.fftn(s[:,:,:,3])
+        smatx[:, :, :, 2, 1] = np.fft.fftn(s[:,:,:,3])
+        smatx[:, :, :, 0, 2] = np.fft.fftn(s[:,:,:,4])
+        smatx[:, :, :, 2, 0] = np.fft.fftn(s[:,:,:,4])
+        smatx[:, :, :, 0, 1] = np.fft.fftn(s[:,:,:,5])
+        smatx[:, :, :, 1, 0] = np.fft.fftn(s[:,:,:,5])
+
         # strain
-        e11k = np.fft.fftn(e[:,:,:,0])
-        e22k = np.fft.fftn(e[:,:,:,1])
-        e33k = np.fft.fftn(e[:,:,:,2])
-        e23k = np.fft.fftn(e[:,:,:,3])
-        e13k = np.fft.fftn(e[:,:,:,4])
-        e12k = np.fft.fftn(e[:,:,:,5])
-
-        # stress
-        s11k = np.fft.fftn(s[:,:,:,0])
-        s22k = np.fft.fftn(s[:,:,:,1])
-        s33k = np.fft.fftn(s[:,:,:,2])
-        s23k = np.fft.fftn(s[:,:,:,3])
-        s13k = np.fft.fftn(s[:,:,:,4])
-        s12k = np.fft.fftn(s[:,:,:,5])
-
-        # summarize stress tensor
-        smatx = np.zeros((Nx, Ny, Nz, 3, 3), dtype=np.complex128)
-        smatx[:, :, :, 0, 0] = s11k
-        smatx[:, :, :, 0, 1] = s12k
-        smatx[:, :, :, 0, 2] = s13k
-        smatx[:, :, :, 1, 0] = s12k
-        smatx[:, :, :, 1, 1] = s22k
-        smatx[:, :, :, 1, 2] = s23k
-        smatx[:, :, :, 2, 0] = s13k
-        smatx[:, :, :, 2, 1] = s23k
-        smatx[:, :, :, 2, 2] = s33k
+        # print("-----------1-------------")
+        g = time.time()
 
         # summarize elastic strain tensor
-        ematx = np.zeros((Nx, Ny, Nz, 3, 3), dtype=np.complex128)
-        ematx[:, :, :, 0, 0] = e11k
-        ematx[:, :, :, 0, 1] = e12k
-        ematx[:, :, :, 0, 2] = e13k
-        ematx[:, :, :, 1, 0] = e12k
-        ematx[:, :, :, 1, 1] = e22k
-        ematx[:, :, :, 1, 2] = e23k
-        ematx[:, :, :, 2, 0] = e13k
-        ematx[:, :, :, 2, 1] = e23k
-        ematx[:, :, :, 2, 2] = e33k
+        for i in range(6):
+            I, J = get_i_j_index(i)
+            ematx[:, :, :, I, J] = np.fft.fftn(e[:,:,:,i])
+            e[:,:,:,i] = np.real(np.fft.ifftn(get_ematx(I, J, ematx[:, :, :, I, J], smatx)))
 
-        #-- Green operator:
-        # e[k] = e[k] - Γ:s[k]
+        # ematx[:, :, :, 1, 1] = np.fft.fftn(e[:,:,:,1])
+        # e[:,:,:,1] = np.real(np.fft.ifftn(get_ematx(1, 1, ematx[:, :, :, 1, 1], smatx)))
 
-        for ii in range(3):
-            for jj in range(3):
-                for kk in range(3):
-                    for ll in range(3):
-                        if (
-                            (ii, jj) == (0,0) or 
-                            (ii, jj) == (0,1) or 
-                            (ii, jj) == (0,2) or 
-                            (ii, jj) == (1,1) or 
-                            (ii, jj) == (1,2) or 
-                            (ii, jj) == (2,2)
-                            ):
-                            ematx[:, :, :, ii, jj] = \
-                                ematx[:, :, :, ii, jj] - tmatx[:, :, :, ii, jj, kk, ll] \
-                                * smatx[:, :, :, kk, ll]
+        # ematx[:, :, :, 2, 2] = np.fft.fftn(e[:,:,:,2])
+        # e[:,:,:,2] = np.real(np.fft.ifftn(get_ematx(2, 2, ematx[:, :, :, 2, 2], smatx)))
 
-        e11k = ematx[:, :, :, 0, 0]
-        e12k = ematx[:, :, :, 0, 1]
-        e13k = ematx[:, :, :, 0, 2]
-        e22k = ematx[:, :, :, 1, 1]
-        e23k = ematx[:, :, :, 1, 2]
-        e33k = ematx[:, :, :, 2, 2]
+        # ematx[:, :, :, 1, 2] = np.fft.fftn(e[:,:,:,3])
+        # e[:,:,:,3] = np.real(np.fft.ifftn(get_ematx(1, 2, ematx[:, :, :, 1, 2], smatx)))
 
-        # From Fourier space to real space:
-        e[:,:,:,0] = np.real(np.fft.ifftn(e11k))
-        e[:,:,:,1] = np.real(np.fft.ifftn(e22k))
-        e[:,:,:,2] = np.real(np.fft.ifftn(e33k))
-        e[:,:,:,3] = np.real(np.fft.ifftn(e23k))
-        e[:,:,:,4] = np.real(np.fft.ifftn(e13k))
-        e[:,:,:,5] = np.real(np.fft.ifftn(e12k))
+        # ematx[:, :, :, 0, 2] = np.fft.fftn(e[:,:,:,4])
+        # e[:,:,:,4] = np.real(np.fft.ifftn(get_ematx(0, 2, ematx[:, :, :, 0, 2], smatx)))
+
+        # ematx[:, :, :, 0, 1] = np.fft.fftn(e[:,:,:,5])
+        # e[:,:,:,5] = np.real(np.fft.ifftn(get_ematx(0, 1, ematx[:, :, :, 0, 1], smatx)))
+
+        # print(time.time() - g)
 
         # el: elastic strain
         #! ea反映してない ea - e - ei
+        # print("-----------5-------------")
+        g = time.time()
         el = e - ei
         # el33 = ea[2,2] + e33 - ei33
 
@@ -133,7 +121,6 @@ def solve_elasticity(Nx, Ny, Nz, tmatx, cm, cp, ea, ei0, con, c0):
         # ea: applied strain
         # e:  fluctuation strain
         # ei: eigen strain
-
         # s = C * (ea + e - ei)
         #! ea反映してない
         #! 例:s11 = c11 * (ea[0] + e11 - ei11) + c12 * (ea[1] + e22 - ei22) + 2.0 * c16 * (ea[2] + e12 - ei12)
@@ -149,6 +136,7 @@ def solve_elasticity(Nx, Ny, Nz, tmatx, cm, cp, ea, ei0, con, c0):
         # s12 = 2.0 * c44 * (ea[2] + e12 - ei12)
 
         #---check convergence:
+        # print("-----------6-------------")
         sum_stres = s[:,:,:,0] + s[:,:,:,1] + s[:,:,:,2] + s[:,:,:,3] + s[:,:,:,4] + s[:,:,:,5]
         normF = np.linalg.norm(sum_stres)
 
@@ -158,6 +146,7 @@ def solve_elasticity(Nx, Ny, Nz, tmatx, cm, cp, ea, ei0, con, c0):
             if conver <= tolerance:
                 break
         old_norm = normF
+        # print(time.time() - g)
 
     #--- strain energy:
     # et: elastic strain components: # 名前わかりにくい！
@@ -203,9 +192,8 @@ def solve_elasticity(Nx, Ny, Nz, tmatx, cm, cp, ea, ei0, con, c0):
     # )
 
     # el = 0.5 * (c11*et11**2 + 2*c12*et11*et22 + 4*c15*et11*et12 + c22*et22**2 + 4*c25*et12*et22 + 4*c44*et12**2)
-    el = 0
 
-    return (delsdc0, el, s)
+    return (delsdc0, s, el)
 
 # 1/2 * (
 #     et11 * (

@@ -1,29 +1,62 @@
 # # import numpy as np
 #%%
 import multiprocessing
-def worker_function_1():
-    for i in range(5):
-        print(f"Worker 1: Task {i}")
-        # 何らかの非同期処理を実行
-    print("Worker 1 finished")
+import time
 
-def worker_function_2():
-    for i in range(5):
-        print(f"Worker 2: Task {i}")
-        # 何らかの非同期処理を実行
-    print("Worker 2 finished")
-
-# if __name__ == "__main__":
 # プロセスを作成
-process1 = multiprocessing.Process(target=worker_function_1)
-process2 = multiprocessing.Process(target=worker_function_2)
+# target=lambda q, func: q.put(func()), args=(results, func)
+def f1():
+    num=0
+    for i in range(5000000):
+        num += i
+        # 何らかの非同期処理を実行
+    return num
 
-# プロセスを開始
-process1.start()
-process2.start()
+def f2():
+    num=0
+    for i in range(5000000):
+        num += i
+    return num
 
-# プロセスが終了するまで待機
-process1.join()
-process2.join()
+def target(q, fn):
+    return q.put(fn())
 
-print("Main program finished")
+def mul():
+
+    results = multiprocessing.Queue()
+    processes = []
+
+    for func in [f1,  f2]:
+        process = multiprocessing.Process(target=target, args=(results, func))
+        processes.append(process)
+
+    for process in processes:
+        process.start()
+
+    for process in processes:
+        process.join()
+
+    results_list = []
+
+    while not results.empty():
+        result = results.get()
+        results_list.append(result)
+
+    print(results_list)
+
+    print("Main program finished")
+
+if __name__ == "__main__":
+    print("----------------")
+    start_time = time.time() 
+    mul()
+    print(time.time() - start_time)
+
+    print("----------------")
+    start_time = time.time() 
+    f1()
+    f2()
+    print(time.time() - start_time)
+    print("----------------")
+
+#%% 
