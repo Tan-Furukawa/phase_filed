@@ -1,6 +1,5 @@
 #%%
 import numpy as np
-from _plot import dim3_plot as myplt3
 
 def prepare_fft(Nx, Ny, Nz, dx, dy, dz):
     Nx21 = Nx // 2 + 1
