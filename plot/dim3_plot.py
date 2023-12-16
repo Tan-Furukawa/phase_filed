@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
 
-def display_3d_matrix(data):
+def display_3d_matrix(data, addAxis=True, show=True):
   ndata = (data - np.min(data)) / (np.max(data) - np.min(data))
   nx, ny, nz = data.shape
 
@@ -25,12 +25,17 @@ def display_3d_matrix(data):
   surf = ax.plot_surface(Xx, Yx, Zx, rstride=1, cstride=1, facecolors=plt.cm.BrBG(ndata[-1,:,:]), shade=False)
   surf = ax.plot_surface(Xy, Yy, Zy, rstride=1, cstride=1, facecolors=plt.cm.BrBG(ndata[:,0,:].T), shade=False)
   surf = ax.plot_surface(Xz, Yz, Zz, rstride=1, cstride=1, facecolors=plt.cm.BrBG(ndata[:,:,-1]), shade=False,cmap="BrBG")
-  cbar = fig.colorbar(surf, shrink=0.5, aspect=5)
-  cbar.set_ticks([0, 1.0])
-  cbar.set_ticklabels([np.min(data), np.max(data)])
-  plt.cm.BrBG(ndata[-1,:,:])
-  plt.show()
+  if addAxis:
+    cbar = fig.colorbar(surf, shrink=0.5, aspect=5)
+    cbar.set_ticks([0, 1.0])
+    cbar.set_ticklabels([np.min(data), np.max(data)])
+    plt.cm.BrBG(ndata[-1,:,:])
+  if show:
+    plt.show()
 
 if __name__ == '__main__':
   data = np.linspace(-5, 10, num=3*4*5).reshape((3, 4, 5))
-  display_3d_matrix(data)
+  display_3d_matrix(data, show=False, addAxis=False)
+  # plt.savefig("tmp.jpeg",format="jpeg") OK
+  # plt.savefig("tmp.png",format="png") NG
+  #%%

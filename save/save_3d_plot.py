@@ -27,15 +27,21 @@ def kwargs_to_json(**kwargs):
     kwargs_serializable = {key: convert_to_serializable(value) for key, value in kwargs.items()}
     return json.dumps(kwargs_serializable)
 
-def save_json(path):
+def save_json(path, json):
   with open(path, 'w') as file:
-    file.write(result)
+    file.write(json)
 
-def make_dir_name():
+def make_dir_name(file_name="output"):
   current_time = datetime.datetime.now()
   timestamp = current_time.strftime("%Y-%m-%d-%H-%M-%S")
-  filename = f"output_{timestamp}"
+  filename = f"{file_name}_{timestamp}"
   return filename
+
+def get_base_name(str):
+    basename = os.path.basename(str)
+    return basename.split(".")[0]
+
+
 
 if __name__ == "__main__":
   create_directory("tmp")
@@ -48,6 +54,10 @@ if __name__ == "__main__":
       'city': 'New York'
   }
   result = kwargs_to_json(**kwargs)
-  save_json(f"tmp/{dirname}/_parameters.json")
+  save_json(f"tmp/{dirname}/_parameters.json", result)
   print(result)
+
+  print(get_base_name('result/output_2023-12-06-19-43-56/con_3330.npy'))
+
+
 #%%
