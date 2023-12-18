@@ -1,4 +1,5 @@
 #%%
+import cupy as cp
 import numpy as np
 
 def prepare_fft(Nx, Ny, Nz, dx, dy, dz):
@@ -9,10 +10,11 @@ def prepare_fft(Nx, Ny, Nz, dx, dy, dz):
     Nx2 = Nx + 2
     Ny2 = Ny + 2
     Nz2 = Nz + 2
+    pi = 3.141592
 
-    delkx = (2.0 * np.pi) / (Nx * dx)
-    delky = (2.0 * np.pi) / (Ny * dy)
-    delkz = (2.0 * np.pi) / (Nz * dz)
+    delkx = (2.0 * pi) / (Nx * dx)
+    delky = (2.0 * pi) / (Ny * dy)
+    delkz = (2.0 * pi) / (Nz * dz)
 
     kx = np.zeros(Nx2)
     ky = np.zeros(Ny2)
@@ -46,15 +48,16 @@ def prepare_fft(Nx, Ny, Nz, dx, dy, dz):
                 k2[i, j, k] = kx[i] ** 2 + ky[j] ** 2 + kz[k] ** 2
                 k4[i, j, k] = k2[i, j, k] ** 2
 
-    return kx, ky, kz, k2, k4
+    return cp.asarray(kx), cp.asarray(ky), cp.asarray(kz), cp.asarray(k2), cp.asarray(k4)
 
-# Nx = 8
-# Ny = 8
-# Nz = 8
-# dx = 1.0
-# dy = 1.0
-# dz = 1.0
-# kx, ky, kz, k2, k4 = prepare_fft(Nx, Ny, Nz, dx, dy, dz)
+if __name__ == "__main__":
+    Nx = 8
+    Ny = 8
+    Nz = 8
+    dx = 1.0
+    dy = 1.0
+    dz = 1.0
+    kx, ky, kz, k2, k4 = prepare_fft(Nx, Ny, Nz, dx, dy, dz)
 # myplt3.display_3d_matrix(k2)
 
 #%%

@@ -1,4 +1,4 @@
-import numpy as np
+import cupy as cp
 import multiprocess as mp
 import time
 
@@ -14,36 +14,36 @@ def get_i_j_index(i):
 def target_process(results, fn, *args):
     results.put(fn(*args))
 
-def solve_elasticity(Nx, Ny, Nz, tmatx, cm, cp, ea, ei0, con, c0):
+def solve_elasticity(Nx, Ny, Nz, tmatx, cm, c_p, ea, ei0, con, c0):
 
     niter = 10
     tolerance = 0.001
     old_norm = None
 
     # initialize stress
-    s = np.zeros((Nx,Ny,Nz,6))
+    s = cp.zeros((Nx,Ny,Nz,6))
 
     # initialize total strain
-    e = np.zeros((Nx,Ny,Nz,6))
+    e = cp.zeros((Nx,Ny,Nz,6))
 
     # elastic strain
-    el = np.zeros((Nx,Ny,Nz,6))
+    el = cp.zeros((Nx,Ny,Nz,6))
 
     #--- eigenstrains:
     # ei * c(x) where c(x) is concentration of precipitants at point x
-    ei = np.zeros((Nx, Ny, Nz, 6))
+    ei = cp.zeros((Nx, Ny, Nz, 6))
     for i in range(6):
         ei[:,:,:,i] = ei0[i] * (con - c0)
 
     # calculate effective elastic constants
     # effective elastic constant: 
     # C = c(r)Cp + (1-c(r))Cm = (Cm + Cp)/2 + 1/2 * (1 - c(r))(Cp - Cm)
-    c = np.zeros((Nx,Ny,Nz,6,6))
-    ci = cp - cm
+    c = cp.zeros((Nx,Ny,Nz,6,6))
+    ci = c_p - cm
     I, J = ci.shape
     for i in range(I):
         for j in range(J):
-            c[:,:,:,i,j] = con * cp[i,j] + (1-con) * cm[i,j]
+            c[:,:,:,i,j] = con * c_p[i,j] + (1-con) * cm[i,j]
 
     #-- Green operator:
     # e[k] = e[k] - Γ:s[k]
@@ -53,48 +53,55 @@ def solve_elasticity(Nx, Ny, Nz, tmatx, cm, cp, ea, ei0, con, c0):
 
     def update_elastic_strain(index, e, smatx):
         I, J = get_i_j_index(index)
-        e = np.fft.fftn(e)
+        e = cp.fft.fftn(e)
         for kk in range(3):
             for ll in range(3):
                     e = e - tmatx[:, :, :, I, J, kk, ll] * smatx[:, :, :, kk, ll]
 
-        e = np.real(np.fft.ifftn(e))
+        e = cp.real(cp.fft.ifftn(e))
         return index, e
 
-    # ematx = np.zeros((Nx, Ny, Nz, 3, 3), dtype=np.complex128)
-    smatx = np.zeros((Nx, Ny, Nz, 3, 3), dtype=np.complex128)
+    # ematx = cp.zeros((Nx, Ny, Nz, 3, 3), dtype=cp.complex128)
+    smatx = cp.zeros((Nx, Ny, Nz, 3, 3), dtype=cp.complex128)
+    ek = cp.zeros((Nx, Ny, Nz))
 
     for iter in range(niter):
 
         #--- take the stresses & strains to Fourier space
-        smatx[:, :, :, 0, 0] = np.fft.fftn(s[:,:,:,0])
-        smatx[:, :, :, 1, 1] = np.fft.fftn(s[:,:,:,1])
-        smatx[:, :, :, 2, 2] = np.fft.fftn(s[:,:,:,2])
-        smatx[:, :, :, 1, 2] = np.fft.fftn(s[:,:,:,3])
+        smatx[:, :, :, 0, 0] = cp.fft.fftn(s[:,:,:,0])
+        smatx[:, :, :, 1, 1] = cp.fft.fftn(s[:,:,:,1])
+        smatx[:, :, :, 2, 2] = cp.fft.fftn(s[:,:,:,2])
+        smatx[:, :, :, 1, 2] = cp.fft.fftn(s[:,:,:,3])
         smatx[:, :, :, 2, 1] = smatx[:, :, :, 1, 2]
-        smatx[:, :, :, 0, 2] = np.fft.fftn(s[:,:,:,4])
+        smatx[:, :, :, 0, 2] = cp.fft.fftn(s[:,:,:,4])
         smatx[:, :, :, 2, 0] = smatx[:, :, :, 0, 2]
-        smatx[:, :, :, 0, 1] = np.fft.fftn(s[:,:,:,5])
+        smatx[:, :, :, 0, 1] = cp.fft.fftn(s[:,:,:,5])
         smatx[:, :, :, 1, 0] = smatx[:, :, :, 0, 1]
 
-        # strain
+        for i in range(6):
+            I,J = get_i_j_index(i)
+            ek = cp.fft.fftn(e[:,:,:,i])
+            for kk in range(3):
+                for ll in range(3):
+                        ek = ek - tmatx[:, :, :, I, J, kk, ll] * smatx[:, :, :, kk, ll]
+                        e[:,:,:,i] = cp.real(cp.fft.ifftn(ek))
 
         # parallelization
-        with mp.Manager() as manager:
-            results = manager.Queue()
-            processes = []
+        # with mp.Manager() as manager:
+        #     results = manager.Queue()
+        #     processes = []
 
-            for index in range(6):
-                # update_elastic_strain(index, e, smatx)
-                process = mp.Process(target=target_process, args=(results, update_elastic_strain, index, e[:,:,:,index], smatx))
-                processes.append(process)
-                process.start()
+        #     for index in range(6):
+        #         # update_elastic_strain(index, e, smatx)
+        #         process = mp.Process(target=target_process, args=(results, update_elastic_strain, index, e[:,:,:,index], smatx))
+        #         processes.append(process)
+        #         process.start()
 
-            for process in processes:
-                process.join()
+        #     for process in processes:
+        #         process.join()
 
-            while not results.empty():
-                i, e[:,:,:,i] = results.get()
+        #     while not results.empty():
+        #         i, e[:,:,:,i] = results.get()
 
         # el: elastic strain
         #! ea反映してない ea - e - ei
@@ -122,11 +129,10 @@ def solve_elasticity(Nx, Ny, Nz, tmatx, cm, cp, ea, ei0, con, c0):
 
         #---check convergence:
         sum_stres = s[:,:,:,0] + s[:,:,:,1] + s[:,:,:,2] + s[:,:,:,3] + s[:,:,:,4] + s[:,:,:,5]
-        normF = np.linalg.norm(sum_stres)
+        normF = cp.linalg.norm(sum_stres)
 
         if iter != 0:
             conver = abs((normF - old_norm) / old_norm)
-            print(conver)
             if conver <= tolerance:
                 break
         old_norm = normF
@@ -144,7 +150,7 @@ def solve_elasticity(Nx, Ny, Nz, tmatx, cm, cp, ea, ei0, con, c0):
     # del E / del c = (Cp - Cm) * et_ij * et_kl - 2ei0 * Cijkl * et_kl * δ_ij
     # del et / del c = ei0はあってる？弾性ひずみは濃度の関数ではない？
 
-    ci = cp - cm
+    ci = c_p - cm
 
     delsdc0 = 0.5*(
        -(2*c[:,:,:,3, 3]*ei0[3] + 2*c[:,:,:,3, 5]*ei0[5])*el[:,:,:,3] -  \

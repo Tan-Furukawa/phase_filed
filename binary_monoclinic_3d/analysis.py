@@ -10,7 +10,7 @@ from _save import save_3d_plot as save
 
 # ディレクトリのパス
 # directory_path = 'result/output_2023-11-17-16-05-52/'
-directory_path = 'result/output_2023-12-06-19-43-56'
+directory_path = 'result/output_2023-12-17-16-10-19'
 
 # ワイルドカードを使ってディレクトリ内のファイルを検索
 file_pattern = os.path.join(f"{directory_path}/res", '*con*')

@@ -1,4 +1,4 @@
-import numpy as np
+import cupy as np
 
 def micro_ch_pre(Nx, Ny, Nz, c0, noise):
 
