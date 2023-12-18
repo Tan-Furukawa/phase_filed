@@ -14,7 +14,8 @@ def get_i_j_index(i):
 def target_process(results, fn, *args):
     results.put(fn(*args))
 
-def solve_elasticity(Nx, Ny, Nz, tmatx, cm, c_p, ea, ei0, con, c0):
+def solve_elasticity(tmatx, cm, c_p, ea, ei0, con, c0):
+    Nx, Ny, Nz = con.shape
 
     niter = 10
     tolerance = 0.001
