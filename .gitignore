@@ -12,5 +12,6 @@ binary_monoclinic_3d/__pycache__
 binary_monoclinic_3d/result
 binary_monoclinic_3d/_plot
 binary_monoclinic_3d/_save
+binary_monoclinic_3d/resources
 
 data/*

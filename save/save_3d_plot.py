@@ -6,12 +6,13 @@ import os
 import shutil
 
 def create_directory(directory_name="tmp", force=False):
+    print(f"making <{directory_name}> directory...")
     if os.path.exists(directory_name):
         if force:
             shutil.rmtree(directory_name)
             print(f"Removed existing directory: {directory_name}")
         else:
-            print(f"The directory {directory_name} already exists.")
+            print(f"The directory <{directory_name}> already exists.")
             return
 
     os.makedirs(directory_name)

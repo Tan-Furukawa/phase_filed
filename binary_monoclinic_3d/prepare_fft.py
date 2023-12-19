@@ -37,7 +37,7 @@ def prepare_fft(Nx, Ny, Nz, dx, dy, dz):
 
     kx = kx[:Nx]
     ky = ky[:Ny]
-    ky = kz[:Nz]
+    kz = kz[:Nz]
 
     k2 = np.zeros((Nx, Ny, Nz))
     k4 = np.zeros((Nx, Ny, Nz))

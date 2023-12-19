@@ -1,11 +1,14 @@
 import numpy as np
 
-def green_tensor (Nx, Ny, Nz, kx, ky, kz, cp, cm):
+def green_tensor (kx, ky, kz, cp, cm):
 
+  Nx = len(kx)
+  Ny = len(ky)
+  Nz = len(kz)
   # cubic elastic constant
-  # C = 
-  # c11 c12  0 
-  # c12 c11  0 
+  # C =
+  # c11 c12  0
+  # c12 c11  0
   #  0   0  c44
 
   c = 0.5 * (cm + cp)
@@ -47,13 +50,13 @@ def green_tensor (Nx, Ny, Nz, kx, ky, kz, cp, cm):
           omeg23[i,j,l] = (-a11*a23 + a12*a13) / det
           omeg33[i,j,l] = (a11*a22 - a12**2) / det
 
-  
   # print(omeg22)
   tmatx = np.zeros((Nx, Ny, Nz, 3, 3, 3, 3))
 
   # gmatx:
   # 1/2 * (k_k * G_pl + k_l * G_pk) * k_q
   for i in range(Nx):
+    print(".", end="")
     for j in range(Ny):
       for l in range(Ny):
           # Greens tensor
@@ -67,13 +70,13 @@ def green_tensor (Nx, Ny, Nz, kx, ky, kz, cp, cm):
           gmatx[2, 0] = omeg13[i, j, l]
           gmatx[2, 1] = omeg23[i, j, l]
           gmatx[2, 2] = omeg33[i, j, l]
-          
+
           # position vector
           dvect = np.zeros(3)
           dvect[0] = kx[i]
           dvect[1] = ky[j]
           dvect[2] = kz[l]
-          
+
           # Green operator
           for kk in range(3):
               for ll in range(3):
@@ -85,5 +88,5 @@ def green_tensor (Nx, Ny, Nz, kx, ky, kz, cp, cm):
                               gmatx[ll, jj] * dvect[ii] * dvect[kk] +
                               gmatx[kk, jj] * dvect[ii] * dvect[ll]
                           )
+  # print("\n")
   return tmatx, omeg11
-    
