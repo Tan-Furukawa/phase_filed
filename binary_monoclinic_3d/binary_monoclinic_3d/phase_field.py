@@ -1,26 +1,25 @@
 #%%
 # from matplotlib.colors import Normalize
 import cupy as cp
+import tqdm
 import pickle
 import numpy as np
 import matplotlib.pyplot as plt
-from micro_ch_pre import micro_ch_pre
-from prepare_fft import prepare_fft
-from green_tensor import green_tensor
-from solve_elasticity import solve_elasticity
-from free_energ_ch_v2 import free_energ_ch_v2
+from binary_monoclinic_3d.initial_noise import add_initial_noise
+from binary_monoclinic_3d.prepare_fft import prepare_fft
+from binary_monoclinic_3d.green_tensor import green_tensor
+from binary_monoclinic_3d.elastic_energy import solve_elasticity
+from binary_monoclinic_3d.free_energy import get_free_energy
 import os
-# import matplotlib.pyplot as plt
-import time
-from _plot import dim3_plot as myplt3
-from _save import save_3d_plot as save
+from binary_monoclinic_3d._plot import dim3_plot as myplt3
+from binary_monoclinic_3d._save import save_3d_plot as save
 
 class BinaryMonoclinic3D(object):
 
     def __init__(self, save_path):
         # the path of saved files
         self.save_path = save_path
-        # self.tmatx = cp.asarray(np.load("../data/tmatx_3d_2023.npy"))
+        self.dirname = save.make_dir_name()
         self.set_initial_parameters()
 
     def doit(self):
@@ -32,6 +31,7 @@ class BinaryMonoclinic3D(object):
         self.calculate_phase_filed()
 
     def set_initial_parameters(self):
+        self.iter = 0
         self.Nx = 64; self.Ny = 64; self.Nz = 64
         self.dx = 1.0; self.dy = 1.0; self.dz = 1.0
         self.nstep = 10000
@@ -42,7 +42,7 @@ class BinaryMonoclinic3D(object):
         self.c0 = 0.4
         self.mobility = 1.0
         self.grad_coef = 2.0
-        self.noise = 0.3
+        self.noise = 0.1
         self.__R = 8.31446262
         self.P = 1 * 10**5 # [Pa]
         self.T = 800 # [K]
@@ -92,8 +92,7 @@ class BinaryMonoclinic3D(object):
             prepare_fft(self.Nx, self.Ny, self.Nz, self.dx, self.dy, self.dz)
 
     def make_save_file(self):
-        # save.create_directory("result")
-        self.dirname = save.make_dir_name()
+        save.create_directory(self.save_path)
         save.create_directory(f"{self.save_path}/{self.dirname}/res")
 
     def save_instance(self):
@@ -106,17 +105,15 @@ class BinaryMonoclinic3D(object):
         with open(f"{self.save_path}/{self.dirname}/instance.pickle", 'wb') as file:
             pickle.dump(res_dict, file)
 
-    def load_instance(self, save_path=None, dir_name=None):
-        if save_path is None and dir_name is None:
+    def load_instance(self, full_dir_path=None):
+        if full_dir_path is None:
             with open(f"{self.save_path}/{self.dirname}/instance.pickle", 'rb') as file:
                 loaded_instance = pickle.load(file)
             return loaded_instance
-        elif type(save_path) is str and type(dir_name) is str:
-            with open(f"{save_path}/{dir_name}/instance.pickle", 'rb') as file:
+        else:
+            with open(f"{full_dir_path}/instance.pickle", 'rb') as file:
                 loaded_instance = pickle.load(file)
             return loaded_instance
-        else:
-            raise TypeError()
 
     def prepare_result_variables(self):
 
@@ -138,7 +135,7 @@ class BinaryMonoclinic3D(object):
         self.delsdck = cp.zeros((self.Nx, self.Ny, self.Nz, 6), dtype=cp.complex128)
 
         # set initial compositional noise
-        self.con = micro_ch_pre(self.Nx, self.Ny, self.Nz, self.c0, self.noise)
+        self.con = add_initial_noise(self.Nx, self.Ny, self.Nz, self.c0, self.noise)
 
         cp.random.seed(123)
 
@@ -153,6 +150,7 @@ class BinaryMonoclinic3D(object):
         # the calculation of green tensor costs very high.
         # so save the green tensor result and
         # use previous one if once it is calculated.
+        print(f"parameters: Nx{self.Nx}, T{int(self.T)}K, P{int(self.P)}Pa")
         save.create_directory("resources")
         filename = f"tmatx_3d_feldspar_{int(self.Nx)}_{int(self.T)}K_{self.P}Pa.npy"
 
@@ -168,8 +166,9 @@ class BinaryMonoclinic3D(object):
             self.tmatx = cp.asarray(tmatx)
 
     def calculate_phase_filed(self):
-        for istep in range(1, self.nstep + 1):
-                print(istep)
+        for istep in tqdm.tqdm(range(1, self.nstep + 1)):
+                self.iter = istep
+                # print(istep)
                 # Calculate derivatives of free energy and elastic energy
                 self.delsdc, self.s, self.el = solve_elasticity(
                     self.tmatx, self.__cm, self.__cp,
@@ -178,8 +177,8 @@ class BinaryMonoclinic3D(object):
 
                 # delsdc = 0
 
-                # Assuming you have the free_energ_ch_v2 and solve_elasticity_v2 functions
-                self.dfdcon, self.g = free_energ_ch_v2(self.con, self.__wab, self.__wor)
+                # Assuming you have the get_free_energy and solve_elasticity_v2 functions
+                self.dfdcon, self.g = get_free_energy(self.con, self.__wab, self.__wor)
 
                 self.energy_g[istep-1] = cp.sum(self.g)
 
@@ -195,20 +194,22 @@ class BinaryMonoclinic3D(object):
                 self.conk = (self.conk - numer) / denom
                 self.con = cp.real(cp.fft.ifftn(self.conk))
 
-                if (istep % self.nprint == 0) or (istep == 1) or (np.mean(self.con)/self.__bulk <0.99):
-                    # con_disp = np.flipud(cp.asnumpy(self.con.transpose()))
-                    con_disp = self.con
-                    # plt.imshow(con_disp)の図の向きは、
-                    # y
-                    # ↑
-                    # |
-                    # + --→ x [100]
-                    # となる。
-                    myplt3.display_3d_matrix(cp.asnumpy(con_disp))
+                if (self.nprint is not None):
+                    if (istep % self.nprint == 0) or (istep == 1) or (np.mean(self.con)/self.__bulk <0.99):
+                        # con_disp = np.flipud(cp.asnumpy(self.con.transpose()))
+                        con_disp = self.con
+                        # plt.imshow(con_disp)の図の向きは、
+                        # y
+                        # ↑
+                        # |
+                        # + --→ x [100]
+                        # となる。
+                        myplt3.display_3d_matrix(cp.asnumpy(con_disp))
+
                 if (istep % self.nsave == 0) or (istep == 1) or (np.mean(self.con)/self.__bulk <0.99):
-                    np.save(f"result/{self.dirname}/res/con_{istep}.npy", cp.asnumpy(self.con))
-                    np.save(f"result/{self.dirname}/res/el_{istep}.npy", cp.asnumpy(self.el))
-                    np.save(f"result/{self.dirname}/res/s_{istep}.npy", cp.asnumpy(self.s))
+                    np.save(f"{self.save_path}/{self.dirname}/res/con_{istep}.npy", cp.asnumpy(self.con))
+                    np.save(f"{self.save_path}/{self.dirname}/res/el_{istep}.npy", cp.asnumpy(self.el))
+                    np.save(f"{self.save_path}/{self.dirname}/res/s_{istep}.npy", cp.asnumpy(self.s))
 
 if __name__ == "__main__":
     feldspar = BinaryMonoclinic3D("result")

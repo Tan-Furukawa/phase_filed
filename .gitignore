@@ -8,10 +8,19 @@ binary_triclinic/result
 binary_triclinic/_plot
 binary_triclinic/_save
 
-binary_monoclinic_3d/__pycache__
-binary_monoclinic_3d/result
-binary_monoclinic_3d/_plot
-binary_monoclinic_3d/_save
-binary_monoclinic_3d/resources
+binary_monoclinic_3d/binary_monoclinic_3d/__pycache__
+binary_monoclinic_3d/binary_monoclinic_3d/result
+binary_monoclinic_3d/binary_monoclinic_3d/_plot
+binary_monoclinic_3d/binary_monoclinic_3d/_save
+binary_monoclinic_3d/binary_monoclinic_3d/resources
+binary_monoclinic_3d/binary_monoclinic_3d.egg-info
+
+tc_space/__pycache__
+tc_space/_binary_monoclinic_3d
+tc_space/result
+tc_space/tc_space_result
+tc_space/resources
+
+matrix_plot/matrix_plot.egg-info
 
 data/*

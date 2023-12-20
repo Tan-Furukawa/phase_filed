@@ -1,4 +1,5 @@
 import numpy as np
+import tqdm
 
 def green_tensor (kx, ky, kz, cp, cm):
 
@@ -55,8 +56,8 @@ def green_tensor (kx, ky, kz, cp, cm):
 
   # gmatx:
   # 1/2 * (k_k * G_pl + k_l * G_pk) * k_q
-  for i in range(Nx):
-    print(".", end="")
+  for i in tqdm.tqdm(range(Nx)):
+    # print(".", end="")
     for j in range(Ny):
       for l in range(Ny):
           # Greens tensor
