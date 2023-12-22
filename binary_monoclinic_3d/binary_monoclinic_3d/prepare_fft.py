@@ -42,22 +42,43 @@ def prepare_fft(Nx, Ny, Nz, dx, dy, dz):
     k2 = np.zeros((Nx, Ny, Nz))
     k4 = np.zeros((Nx, Ny, Nz))
 
+    kx_mat = np.zeros((Nx, Ny, Nz))
+    ky_mat = np.zeros((Nx, Ny, Nz))
+    kz_mat = np.zeros((Nx, Ny, Nz))
+
     for i in range(Nx):
         for j in range(Ny):
             for k in range(Nz):
+                kx_mat[i,j,k] = kx[i]
+                ky_mat[i,j,k] = ky[j]
+                kz_mat[i,j,k] = kz[k]
                 k2[i, j, k] = kx[i] ** 2 + ky[j] ** 2 + kz[k] ** 2
                 k4[i, j, k] = k2[i, j, k] ** 2
 
-    return cp.asarray(kx), cp.asarray(ky), cp.asarray(kz), cp.asarray(k2), cp.asarray(k4)
+    return (
+        cp.asarray(kx), cp.asarray(ky), cp.asarray(kz),
+        cp.asarray(k2), cp.asarray(k4),
+        cp.asarray(kx_mat), cp.asarray(ky_mat), cp.asarray(kz_mat)
+        )
 
 if __name__ == "__main__":
+    Nx = 4
+    Ny = 4
+    Nz = 4
+    dx = 1.0
+    dy = 1.0
+    dz = 1.0
+    kx, ky, kz, k2, k4,kx_mat,ky_mat,kz_mat = prepare_fft(Nx, Ny, Nz, dx, dy, dz)
+    print(kx)
+
     Nx = 8
     Ny = 8
     Nz = 8
     dx = 1.0
     dy = 1.0
     dz = 1.0
-    kx, ky, kz, k2, k4 = prepare_fft(Nx, Ny, Nz, dx, dy, dz)
+    kx, ky, kz, k2, k4,kx_mat,ky_mat,kz_mat = prepare_fft(Nx, Ny, Nz, dx, dy, dz)
+    print(kx)
 # myplt3.display_3d_matrix(k2)
 
 #%%

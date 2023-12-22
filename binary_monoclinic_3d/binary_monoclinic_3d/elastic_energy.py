@@ -37,7 +37,7 @@ def solve_elasticity(tmatx, cm, c_p, ea, ei0, con, c0):
         ei[:,:,:,i] = ei0[i] * (con - c0)
 
     # calculate effective elastic constants
-    # effective elastic constant: 
+    # effective elastic constant:
     # C = c(r)Cp + (1-c(r))Cm = (Cm + Cp)/2 + 1/2 * (1 - c(r))(Cp - Cm)
     c = cp.zeros((Nx,Ny,Nz,6,6))
     ci = c_p - cm
