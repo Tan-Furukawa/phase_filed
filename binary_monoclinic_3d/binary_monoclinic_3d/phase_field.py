@@ -51,7 +51,7 @@ class BinaryMonoclinic3D(object):
         self.noise = 0.1
         self.__R = 8.31446262
         self.P = 1 * 10**5 # [Pa]
-        self.T = 600 # [K]
+        self.T = 700 # [K]
         self.w_or_input = lambda T, P: (22820 - 6.3 * T + 0.461 * P / 10 ** 5)  # [GPa]
         self.w_ab_input = lambda T, P: (19550 - 10.5 * T + 0.327 * P / 10 ** 5) # [GPa]
         self.v_or = 8.60 * 13.2  * 7.18 * np.sin(116 / 180 * np.pi) #[A^3]
@@ -199,13 +199,22 @@ class BinaryMonoclinic3D(object):
 
                 self.energy_g[istep-1] = cp.sum(self.g)
 
+
+                # # バルク規格化
+                self.con = self.c0 - np.sum(self.con) / (self.Nx*self.Ny*self.Nz) + self.con
+                self.con = self.con * (1 + np.sum(self.con[self.con < 0])/self.c0)
+                self.con = self.con * (1 + np.sum(self.con[self.con > 1])/self.c0)
+                self.con[self.con < 0] = 0.00001
+                self.con[self.con > 1] = 0.99999
+
+
                 self.conk = cp.fft.fftn(self.con)
                 self.dgdck = cp.fft.fftn(self.dfdcon + self.delsdc)
                 # self.delsdck = cp.fft.fftn(self.delsdc)
 
                 if (method != "linear"):
                     # diffusion term
-                    self.d = self.con * (1 - self.con)
+                    self.d = cp.abs(self.con * (1 - self.con))
                     self.dk = cp.fft.fftn(self.d)
                     term1 = \
                         cp.fft.fftn(
@@ -271,13 +280,26 @@ if __name__ == "__main__":
     feldspar = BinaryMonoclinic3D("result", method="nonliear")
     # feldspar.doit()
     feldspar.dtime = 4e-3
-    feldspar.nsave = 50
-    feldspar.nprint = 10
+    feldspar.nsave = 100
+    feldspar.Nx = 128
+    feldspar.Ny = 128
+    feldspar.Nz = 128
+    feldspar.nprint = 500
     feldspar.nstep = 1000000
     # feldspar.set_all()
-    feldspar.doit()
-    # feldspar.roop_start_from = 279601
-    # feldspar.con = cp.asarray(np.load("result/important/res/con_279600.npy"))
-    # feldspar.calculate_phase_filed()
+    # feldspar.doit()
+    # feldspar.roop_start_from = 34600
+    # feldspar.con = cp.asarray(np.load("result/output_2023-12-23-11-53-37/res/con_34600.npy"))
+    # feldspar.calculate_phase_filed(method="nonlinear")
+    dat = np.load("result/output_2023-12-24-21-31-47/res/con_156600.npy")
+    myplt3.display_3d_matrix(dat)
+    # plt.plot(dat)
+
+# %%
+# dat = np.load("result/output_2023-12-23-16-50-53/res/con_84600.npy")
+# myplt3.display_3d_matrix(dat)
+# dat = np.load("result/output_2023-12-23-11-53-37/res/con_14500.npy")
+# np.mean(dat)
+# myplt3.display_3d_matrix(dat)
 
 # %%

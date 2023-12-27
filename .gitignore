@@ -21,6 +21,13 @@ tc_space/result
 tc_space/tc_space_result
 tc_space/resources
 
+phase_field_fig/__pycache__
+phase_field_fig/_binary_monoclinic_3d
+phase_field_fig/result
+phase_field_fig/resources
+
+make_gif/result
+
 matrix_plot/matrix_plot.egg-info
 
 data/*

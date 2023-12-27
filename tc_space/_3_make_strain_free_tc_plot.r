@@ -1,3 +1,4 @@
+setwd("/home/tan/Documents/work/phase_filed/")
 # t[K], P[bar]
 get_free_energy <- function(x, t, P) {
     R = 8.31446262

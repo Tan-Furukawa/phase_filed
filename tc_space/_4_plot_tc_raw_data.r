@@ -1,5 +1,6 @@
 # making t-c space raw data plot
 # making fitted_param.csv
+setwd("/home/tan/Documents/work/phase_filed/")
 
 library(magrittr)
 
@@ -30,6 +31,7 @@ a3 = summary(fit)$coefficients[2,1]
 a2 = summary(fit)$coefficients[3,1]
 a1 = summary(fit)$coefficients[4,1]
 
+c = seq(0,1,length=100)
 fitted <- (function(x) a3*x^3 + a2*x^2 + a1*x + a0)(c)
 
 pdf(width=5, height=7, "tc_space/tc_space_raw.pdf")
@@ -40,8 +42,7 @@ plot(
     ylab = expression(T~"[\u00B0C]"),
     xaxs="i",
     )
-c = seq(0,1,length=100)
-lines(c,fitted,
+lines(c, fitted,
     lwd=2,
     col="grey20"
     )
@@ -70,7 +71,7 @@ points(
  cex=.8
 )
 legend("topright",
-legend=c("lamellar growth","single phase","coherent","strain_free"),
+legend=c("lamellar growth","single phase","coherent","strain free"),
     pch = c(24,25,NA,NA),
     pt.bg = c("grey40","grey90","",""),
     col= c("black","black","grey20","grey50"),

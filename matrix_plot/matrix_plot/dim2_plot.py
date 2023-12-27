@@ -53,23 +53,43 @@ def make_partial_True_matrix(repeat_n, mat_size):
   mat[x_index.tolist(), y_index.tolist()] = True
   return mat
 
-def display_gradient(mat, pixel_spacing=3, isnorm=True):
+def display_gradient(
+      mat,
+      pixel_spacing=3,
+      isnorm=True,
+      scale=10,
+      width=0.005,
+      is_display_background = True,
+      show = True,
+      color_map = "Greys",
+      color = "black"
+      ):
+
   position_x, position_y = get_matrix_position(mat)
   gradient_y, gradient_x = np.gradient(mat)
-  use = make_partial_True_matrix(pixel_spacing, position_x.shape[0])
 
   # 勾配ベクトルを可視化
-  cmap = plt.get_cmap("Greys") 
-  # カラーマップの正規化
-  if (isnorm):
-    norm = Normalize(vmin=-1, vmax=2) #あえて大きめ
-    plt.imshow(mat, cmap=cmap, norm=norm)
-  else:
-    plt.imshow(mat, cmap=cmap)
-  plt.quiver(position_x[use], position_y[use], -gradient_x[use], gradient_y[use], scale=10, width=0.005)
-  plt.show()
+  if is_display_background:
+    cmap = plt.get_cmap(color_map)
+    # カラーマップの正規化
+    if (isnorm):
+      norm = Normalize(vmin=-1, vmax=2) #あえて大きめ
+      plt.imshow(mat, cmap=cmap, norm=norm)
+    else:
+      plt.imshow(mat, cmap=cmap)
+
+  use = make_partial_True_matrix(pixel_spacing, position_x.shape[0])
+  plt.quiver(position_x[use], position_y[use], -gradient_x[use], gradient_y[use], scale=scale, width=width, color=color)
+  if show:
+    plt.show()
+
 
 def hist(mat, bins=300):
     plt.hist(mat.flatten(),bins=bins,range=(0,1))
     plt.show()
   #%%
+
+if __name__ == "__main__":
+    mat = np.linspace(0, 1, num=10*10).reshape((10, 10))
+    display_gradient(mat, color="white")
+# %%
